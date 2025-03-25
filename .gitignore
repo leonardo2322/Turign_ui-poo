@@ -1,0 +1,30 @@
+connexion.py
+
+# Archivos y carpetas de entorno virtual
+
+venv/
+env/
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+*.log
+.env
+# Archivos de configuración del entorno de desarrollo
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Archivos específicos de Flet
+.flet/
+*.fletcache
+
+# Dependencias instaladas (si usas pipenv o poetry)
+Pipfile
+Pipfile.lock
+poetry.lock
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db

@@ -1,0 +1,18 @@
+mi_aplicacion/
+│
+├── main.py                  # Punto de entrada de la aplicación
+├── requirements.txt         # Dependencias del proyecto
+│
+├── models/                  # Definición de los modelos de la base de datos
+│   └── user.py              # Modelo de usuario
+│
+├── repositories/            # Capa de acceso a datos (DAL)
+│   └── user_repository.py   # Operaciones CRUD para el modelo User
+│
+├── services/                # Capa de lógica de negocio (BLL)
+│   └── user_service.py      # Lógica de negocio relacionada con usuarios
+│
+├── ui/                      # Capa de presentación (UI)
+│   └── app_ui.py            # Interfaz gráfica usando Flet
+│
+└── database.py              # Configuración de la base de datos y SQLAlchemy
