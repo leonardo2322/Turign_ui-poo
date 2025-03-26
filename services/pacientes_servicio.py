@@ -44,6 +44,7 @@ class Paciente_agente_servicio:
                         paciente.resultado,
                     ) for paciente in pacientes
                 ]
+    
     async def get_pacientes(self, page=1, page_size=10):
         try:
             offset = (page - 1) * page_size  # Calcula el inicio de la paginación
@@ -85,8 +86,26 @@ class Paciente_agente_servicio:
             return self.order_pacientes(pacientes)
         except Exception as e:
             return {"error": str(e)}
+    
     async def total_pacientes(self):
         return await self.paciente_agente_repo.get_total_pacientes()   
+    
+    async def pacientes_servicio(self,servicio=None):
+        pruebas_count = await self.paciente_agente_repo.get_pacientes_serivicio(servicio=servicio)
+        dict_pruebas = [dict(item) for item in pruebas_count]
+        conteo_dict = {}
+
+        for item in dict_pruebas:
+                servicio = item["servicio_Remitente"]
+                prueba = item["prueba"]
+                total = item["total"]
+
+                if servicio not in conteo_dict:
+                    conteo_dict[servicio] = {}
+
+                conteo_dict[servicio][prueba] = total
+        return conteo_dict
+
     async def delete_pacientes(self, id):
         try:
             if id.is_integer():

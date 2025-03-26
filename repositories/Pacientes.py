@@ -15,18 +15,26 @@ class Paciente_agente_repo:
             return paciente
         except DoesNotExist:
             return None
+    
     async def get_total_pacientes(self):
         return await Paciente.all().count()  
+    
     async def get_all_pacientes(self, limit=10, offset=0):
         pacientes = await Paciente.all().order_by("id").offset(offset).limit(limit)
         return pacientes
-    async def get_pacientes_serivico(self,servicio):
+    
+    async def get_pacientes_serivicio(self,servicio):
         try:
+            consulta = Paciente.all()
+
+        # Filtrar por servicio si se proporciona
+            if servicio:
+                consulta = consulta.filter(servicio_Remitente=servicio)
             pruebas_count = (
-                await Paciente.filter(servicio_Remitente=servicio)
-                .group_by("prueba")
-                .annotate(total=Count("prueba"))
-                .values("prueba", "total")
+                await consulta
+                .group_by("prueba", "servicio_Remitente") \
+                .annotate(total=Count("prueba")) \
+                .values("prueba", "servicio_Remitente", "total")
             )
             return pruebas_count
         except DoesNotExist:

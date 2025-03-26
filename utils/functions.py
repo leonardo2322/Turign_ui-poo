@@ -1,5 +1,5 @@
 from utils.dialog import Dialog
-from flet import ElevatedButton,DataTable,border,BorderSide,DataColumn,colors,Text,Row,DataCell,IconButton,icons,DataRow,Column,Margin
+from flet import ElevatedButton,DataTable,border,BorderSide,DataColumn,colors,Text,Row,DataCell,IconButton,icons,DataRow,Column,Margin,Card,Container,BoxShadow,FontWeight,LinearGradient,alignment,Offset
 # funcion para llamar al dialog y se abre
 from services.pacientes_servicio import Paciente_agente_servicio
 def dlg_callback(
@@ -40,7 +40,31 @@ class Boton_P(ElevatedButton):
         self.height = kwargs.get("height", 40)
         self.on_click = kwargs.get("on_click",None)     
         self.style = kwargs.get("style",None)
- 
+
+class CustomCard(Card):
+    def __init__(self, title: str, content: str, color: str = "#6b6ecc"):
+        super().__init__()
+        self.content = Container(
+            content=Column([
+                Text(title, size=22, weight=FontWeight.BOLD, color="white"),
+                Text(content, size=16, color="black"),
+            ], spacing=10),
+            padding=15,
+            bgcolor=color,
+            width=220,
+            border_radius=10,
+            gradient=LinearGradient(
+                begin=alignment.top_left,
+                end=alignment.bottom_right,
+                colors=["#04051dea", "#2b566e"]
+            ),
+            shadow=BoxShadow(
+                blur_radius=7,
+                spread_radius=-7,
+                offset=Offset(0, 10),
+                color=colors.BLUE_400,
+            ),
+        )
 
 class DataTableManager(Column):
     def __init__(self, main,listar,dlg,page,*args, **kwargs):
@@ -104,7 +128,7 @@ class DataTableManager(Column):
                     ) for i, cell in enumerate(row)
                 ] + [
                     DataCell(Row(controls=[
-                        IconButton(icon="create", on_click=lambda e, r=row: self.edit_row(r, e, clase)),
+                        # IconButton(icon="create", on_click=lambda e, r=row: self.edit_row(r, e, clase)),
                         IconButton(icon=icons.DELETE, icon_color="red", data="Del", on_click=lambda e:self.permiso_eliminar(e,row, clase))
                     ], spacing=12))
                 ]
