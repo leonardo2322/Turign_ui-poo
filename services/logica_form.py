@@ -85,17 +85,25 @@ class Inputs_data_paciente:
         
         
     async def guardar_Campos(self):
-        datos = self.obtener_datos()
+        
+        try:
+            datos = self.obtener_datos()
+        except Exception as e:
+            return None
         resultado = await self.repo.create_paciente(
-            nombre=datos.get("Nombre"),
-            Edad=datos.get("Edad"),
-            sexo=datos.get("Sexo"),
-            servicio_Remitente=datos.get("Servicio"),
-            prueba=datos.get("Prueba"),
-            resultado="Pendiente"
-        )
+                nombre=datos.get("Nombre"),
+                Edad=datos.get("Edad"),
+                sexo=datos.get("Sexo"),
+                servicio_Remitente=datos.get("Servicio"),
+                prueba=datos.get("Prueba"),
+                resultado="Pendiente"
+            )
         if resultado:
             self.clean()
+        else:
+            self.clean()
+            return None
+
         return resultado
     def obtener_datos(self):
         """Obtiene los valores ingresados en los campos"""

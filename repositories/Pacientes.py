@@ -32,9 +32,9 @@ class Paciente_agente_repo:
                 consulta = consulta.filter(servicio_Remitente=servicio)
             pruebas_count = (
                 await consulta
-                .group_by("prueba", "servicio_Remitente") \
-                .annotate(total=Count("prueba")) \
-                .values("prueba", "servicio_Remitente", "total")
+                .group_by("prueba", "servicio_Remitente","turno") \
+                .annotate(total=Count("servicio_Remitente")) \
+                .values("prueba", "servicio_Remitente", "total","turno")
             )
             return pruebas_count
         except DoesNotExist:

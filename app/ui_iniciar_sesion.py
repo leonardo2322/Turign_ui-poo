@@ -2,7 +2,6 @@ from flet import Text, Column, Row, TextField,ElevatedButton,MainAxisAlignment, 
 from connexion import init, close
 from model.models import User
 from tortoise import Tortoise
-from app.ui_principal import UI_Principal
 from utils.functions import dlg_callback
 
 class UI_iniciar_sesion(Row):
@@ -37,14 +36,13 @@ class UI_iniciar_sesion(Row):
         # import bcrypt
         connexion = await init()
         self.page.views.clear()
-        self.page.views.append(View("/Inicio", controls=[UI_Principal(self.page,self.show_dlg)]))
         self.page.go("/Inicio")
         # user = await User.filter(name=self.nombre.value).first()
         # if user:
         #     if bcrypt.checkpw(self.contraseña.value.encode(), user.password.encode()):
         #         self.nombre.value = ''
         #         self.contraseña.value = ''
-        #         self.page.views.append(View("/Inicio", controls=[UI_Principal(self.page,self.show_dlg)]))
+        #         
         #         self.page.go("/Inicio") 
         #     else:
         #         self.func_dlg(self,

@@ -1,4 +1,4 @@
-from flet import icons,Icons, Container, MainAxisAlignment, Text, Row, ButtonStyle, RoundedRectangleBorder, Padding
+from flet import icons,Icons, Container, MainAxisAlignment, Text, Row, ButtonStyle, CrossAxisAlignment, Padding,Column,colors
 
 botones_navegacion = [
     {"icon": icons.HOME, "selected_icon": icons.HOME_WORK_OUTLINED, "label": "Servicios"},
@@ -8,9 +8,17 @@ botones_navegacion = [
 
 
 ]
-head = ["Id","fecha","Nombre","Edad","Sexo","Servicio Remitente","Prueba","Resultado"]
+head = ["Id","fecha","Nombre","Edad","Sexo","Servicio Remitente","Prueba","Resultado","Turno"]
 background_app = '#2c3e50'
 
+def turnos(title,data):
+    return Container(
+          width=1450,
+          height=80,
+          bgcolor=colors.BLACK38,
+          content=Column(alignment=MainAxisAlignment.CENTER,horizontal_alignment=CrossAxisAlignment.CENTER,
+                         controls=[title]+[item for item in data ])
+    )
 def container_accion(h=100,botones=[]):
         container_acciones = Container(
             bgcolor=background_app,

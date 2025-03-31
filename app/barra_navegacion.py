@@ -1,9 +1,9 @@
-from flet import Text,Column, TextField,NavigationRail,NavigationRailLabelType,NavigationRailDestination,icons,Padding,Container,ButtonStyle,RoundedRectangleBorder,CrossAxisAlignment,MainAxisAlignment,Row, ElevatedButton,GridView
-from config.variables import container_accion,head
-from utils.functions import dlg_callback
+from flet import Text,Column, TextField,NavigationRail,NavigationRailLabelType,NavigationRailDestination,icons,Padding,Container,ButtonStyle,RoundedRectangleBorder,CrossAxisAlignment,MainAxisAlignment,Row, ElevatedButton,GridView,TextAlign,colors,FontWeight
+from config.variables import container_accion,head,turnos
+from utils.functions import dlg_callback #actualizar_turnos
 from services.logica_form import Inputs_data_paciente,Paciente_agente_servicio
 from utils.functions import Boton_P, DataTableManager,CustomCard
-
+from datetime import datetime
 class Nav_Bar(Column):
     def __init__(self,destinations,bg,page,main,dlg,*args,**kwargs):
         super().__init__(*args,**kwargs)
@@ -14,7 +14,8 @@ class Nav_Bar(Column):
         self.data_Table = DataTableManager(main,listar=self.ejecucion_listar,dlg=dlg,page=page)
         self.busqueda = TextField(hint_text="Buscar....",width=270)
         self.contedor_tabla = Column(alignment=MainAxisAlignment.CENTER,horizontal_alignment=CrossAxisAlignment.CENTER,scroll='always')
-        self.grid = GridView(expand=1, runs_count=3, spacing=15, run_spacing=10)
+        self.grid = GridView(expand=1, runs_count=4, spacing=15, run_spacing=10)
+        self.turno_name = Text("",text_align=TextAlign.CENTER,size=18,weight=FontWeight.BOLD,font_family="Montserrat",color=colors.AMBER_300)
         self.boton_anterior = None
         self.boton_siguiente = None
         self.show_dlg = dlg
@@ -40,14 +41,35 @@ class Nav_Bar(Column):
             width=100,   # Ajusta el ancho según tus necesidades
             on_change=self.change_window
         )
+    
     def change_window(self, e):
         self.selected_index = e.control.selected_index  # Actualiza el índice seleccionado
         if self.selected_index == 0:
+            self.busqueda.value = ""
             if self.contedor_tabla.controls:
                 self.contedor_tabla.clean()
-
-            buscar_btn = Boton_P(text="Todos",
+            btn_dia = Boton_P(text="Dia",
                     icon=icons.CHECK_CIRCLE,
+                    width=170,
+                    data="Día",
+                    on_click = self.cards_servicio,
+                    style=ButtonStyle(
+                                shape=RoundedRectangleBorder(radius=10),
+                                shadow_color="black",
+                                padding=Padding(20, 10, 20, 10)
+                            ))
+            btn_noche = Boton_P(text="Noche",
+                    icon=icons.CHECK_CIRCLE,
+                    width=170,
+                    data = "Noche",
+                    on_click = self.cards_servicio,
+                    style=ButtonStyle(
+                                shape=RoundedRectangleBorder(radius=10),
+                                shadow_color="black",
+                                padding=Padding(20, 10, 20, 10)
+                            ))
+            submit_btn = Boton_P(text="Buscar",
+                    icon=icons.SEARCH,
                     color="white",
                     width=170,
                     on_click = self.cards_servicio,
@@ -57,7 +79,7 @@ class Nav_Bar(Column):
                                 padding=Padding(20, 10, 20, 10)
                             ))
             
-            self.window_selected([container_accion(botones=[buscar_btn]),self.grid,Container(width=200,height=80)])
+            self.window_selected([container_accion(botones=[btn_dia,btn_noche,self.busqueda,submit_btn]),turnos(self.turno_name,[]),self.grid,Container(width=200,height=80)])
             
         elif self.selected_index == 1:
             #boton para registrar guardado listado y buscar estos botones son de ejcucion de las funciones este a sido de ejemplo pero debo reescribir este codigo y hacerlo mas puro
@@ -108,26 +130,46 @@ class Nav_Bar(Column):
             self.page.go("/listar")
         elif self.selected_index == 3:
             self.page.views.pop()
+            
             self.page.go("/")
 
     async def cards_servicio(self,e):
         tarjetas = []
+        turno = e.control.data #"Día"
+        self.turno_name.value = f"Turno: {e.control.data} Fecha {datetime.now().strftime("%d/%m/%Y")}"
         async def wrapper():
             pruebas_count = await self.agent_paciente.pacientes_servicio()
-            for servicio, pruebas in pruebas_count.items():
-                contenido = "\n".join([f"{prueba}: {total}" for prueba, total in pruebas.items()])
-                tarjeta = CustomCard(title=servicio, content=contenido)
+            result_dia = {
+                        prueba: {
+                            "servicios": [s for s in detalles["servicios"] if s["turno"] == turno],
+                            "total_general": sum(s["total"] for s in detalles["servicios"] if s["turno"] == turno)
+                        }
+                        for prueba, detalles in pruebas_count.items()
+                        if any(s["turno"] == turno for s in detalles["servicios"])
+                    }
+            for prueba, datos in result_dia.items():
+                servicios = datos["servicios"]  # Extraemos la lista de servicios
+                total_general = datos["total_general"]  # Extraemos el total acumulado
+
+                contenido_servicios = "\n".join([f"{s['servicio']}: {s['total']}" for s in servicios])
+                contenido = f"{contenido_servicios}\n\nTotal: {total_general}"
+
+                tarjeta = CustomCard(title=prueba, content=contenido)
+
                 tarjetas.append(tarjeta)
         await wrapper()
         self.grid.controls.clear()
+        
         self.grid.controls.extend(tarjetas)
         self.page.update()
-        return wrapper
+    
     async def ejecucion(self,e):
         #guarda los campos del paciente y los lista
         resultado = await self.form_pacientes.guardar_Campos()
         if resultado:
             await self.ejecucion_listar(e)
+        else:
+            dlg_callback(self,e,self.page,title="Error de ingreso",content=Text("has cometido un error verifica y vuelve a intentarlo Debes relleanar todos los campos y la edad en numeros"),icon=icons.DANGEROUS,color_icon="red",win_height=200),
         self.page.update()
     
     async def buscar_paciente(self,e):
@@ -138,7 +180,7 @@ class Nav_Bar(Column):
             await self.ejecucion_listar(e,filtado,page)
         return wrapper
     
-    
+
     def window_selected(self,accion:list):
         self.main.clean()
         self.main.controls.extend(accion)

@@ -1,6 +1,6 @@
 from tortoise import fields
 from tortoise.models import Model
-
+from datetime import time, datetime
 class User(Model):
     id = fields.IntField(pk=True)
     name = fields.CharField(max_length=50)
@@ -44,6 +44,18 @@ class Paciente(Model):
         choices=[("Positivo", "Positivo"), ("Negativo", "Negativo"), ("Pendiente", "Pendiente")],
         default="Pendiente"
     )
-
+    turno = fields.CharField(max_length=10,null=True)
     def __str__(self):
         return self.nombre
+
+    async def save(self, *args, **kwargs):
+        if self.fecha:
+            hora = self.fecha.time()
+        else:
+            # Si no hay fecha, usa la hora actual del sistema
+            hora = datetime.now().time() # O asigna un valor predeterminado
+        if time(7, 0) <= hora < time(19, 0):
+            self.turno = "Día"
+        else:
+            self.turno = "Noche"
+        await super().save(*args, **kwargs)

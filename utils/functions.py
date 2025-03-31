@@ -2,6 +2,8 @@ from utils.dialog import Dialog
 from flet import ElevatedButton,DataTable,border,BorderSide,DataColumn,colors,Text,Row,DataCell,IconButton,icons,DataRow,Column,Margin,Card,Container,BoxShadow,FontWeight,LinearGradient,alignment,Offset
 # funcion para llamar al dialog y se abre
 from services.pacientes_servicio import Paciente_agente_servicio
+from model.models import Paciente
+from datetime import time
 def dlg_callback(
           self,e,page,title,content,icon=None,color_icon=None,
           action_def=None,btn_ok=None,btn_cancel=None,icon_btn=None,
@@ -40,7 +42,7 @@ class Boton_P(ElevatedButton):
         self.height = kwargs.get("height", 40)
         self.on_click = kwargs.get("on_click",None)     
         self.style = kwargs.get("style",None)
-
+        self.data = kwargs.get("data",None)
 class CustomCard(Card):
     def __init__(self, title: str, content: str, color: str = "#6b6ecc"):
         super().__init__()
@@ -161,3 +163,19 @@ class DataTableManager(Column):
         return on_delete_click
 
     
+# async def actualizar_turnos():
+#     pacientes = await Paciente.all()
+
+#     for paciente in pacientes:
+#         if paciente.fecha:  # Verifica que la fecha existe
+#             hora = paciente.fecha.time()
+#             paciente.turno = "Día" if time(7, 0) <= hora < time(19, 0) else "Noche"
+#             await paciente.save()
+
+# async def actualizar(self,e):
+
+#     async def wrapper(e):
+#         result = await actualizar_turnos()
+#         print(result,"en resultado")
+#     await wrapper(e) 
+#     return wrapper

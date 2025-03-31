@@ -1,5 +1,6 @@
 from repositories.Pacientes import Paciente_agente_repo
 from tortoise.expressions import Q
+from datetime import datetime
 class Paciente_agente_servicio:
     def __init__(self):
         self.paciente_agente_repo = Paciente_agente_repo()
@@ -16,6 +17,7 @@ class Paciente_agente_servicio:
             return {"error": "Seleccione un servicio"}
         if prueba == "...":
             return {"error": "Seleccione una prueba"}
+        
 
         return None
 
@@ -42,6 +44,7 @@ class Paciente_agente_servicio:
                         paciente.servicio_Remitente,
                         paciente.prueba,
                         paciente.resultado,
+                        paciente.turno
                     ) for paciente in pacientes
                 ]
     
@@ -72,6 +75,7 @@ class Paciente_agente_servicio:
                 "P": Q(prueba__icontains=valor),     # Busca por prueba
                 "F": Q(fecha__icontains=valor),      # Busca por fecha (puedes ajustar el formato)
                 "E": Q(Edad=valor) if valor.isdigit() else None,  # Busca por edad exacta (solo números)
+                "T": Q(turno__icontains=valor)
                 }
             filtro = filtros.get(prefijo.upper())
             
@@ -82,7 +86,6 @@ class Paciente_agente_servicio:
         
             if not pacientes:
                 return []
-            print(pacientes)
             return self.order_pacientes(pacientes)
         except Exception as e:
             return {"error": str(e)}
@@ -96,16 +99,50 @@ class Paciente_agente_servicio:
         conteo_dict = {}
 
         for item in dict_pruebas:
-                servicio = item["servicio_Remitente"]
-                prueba = item["prueba"]
-                total = item["total"]
+            servicio = item["servicio_Remitente"]
+            prueba = item["prueba"]
+            total = item["total"]
+            turno_creado = item['turno']
+            # Ajustar el total según el tipo de prueba
+            if prueba == "Hematologia":
+                total *= 5
+            elif prueba == "Orina":
+                total *= 6
+            elif prueba == "Heces":
+                total *= 2
 
-                if servicio not in conteo_dict:
-                    conteo_dict[servicio] = {}
+            # Si la prueba no está en el diccionario, la inicializamos con lista de servicios y total general
+            if prueba not in conteo_dict:
+                conteo_dict[prueba] = {"servicios": [], "total_general": 0}
 
-                conteo_dict[servicio][prueba] = total
+            # Buscar si el servicio ya existe en la lista de servicios
+            servicio_existente = next((s for s in conteo_dict[prueba]["servicios"] if s["servicio"] == servicio), None)
+
+            if servicio_existente:
+                # Si el servicio ya existe, sumamos el total
+                servicio_existente["total"] += int(total)
+            else:
+                # Si el servicio no existe, lo agregamos a la lista
+                conteo_dict[prueba]["servicios"].append({"servicio": servicio, "total": total,"turno":turno_creado})
+
+            # Sumar al total general de la prueba
+            conteo_dict[prueba]["total_general"] += int(total)
         return conteo_dict
-
+ 
+    async def paciente_por_fecha(self,busqueda):
+        query = busqueda.strip()
+       
+        try:
+            if not query:
+                return []
+            fecha = datetime.strptime(query, "%d/%m/%Y")
+            if fecha:
+                filtro = Q(fecha__iconstain=fecha)
+                self.paciente_agente_repo.get_pacientes_filtered(filtro)
+            else:
+                return {"error":"la fecha es incorrecta introduce una valida"}
+        except Exception as e:
+            return f"error {str(e)}"
     async def delete_pacientes(self, id):
         try:
             if id.is_integer():
