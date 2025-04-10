@@ -1,13 +1,21 @@
-from flet import icons,Icons, Container, MainAxisAlignment, Text, Row, ButtonStyle, CrossAxisAlignment, Padding,Column,colors
+from flet import icons,Icons, Container, MainAxisAlignment, Text, Row, ButtonStyle, CrossAxisAlignment, Padding,Column,colors,Colors
 
 botones_navegacion = [
     {"icon": icons.HOME, "selected_icon": icons.HOME_WORK_OUTLINED, "label": "Servicios"},
     {"icon": icons.NOTE_ADD, "selected_icon": icons.NOTE_ADD_OUTLINED, "label": "Registros"},
-    {"icon":icons.LIST_ALT, "selected_icon": icons.FORMAT_LIST_BULLETED, "label": "Listado"},
+    {"icon":icons.STACKED_BAR_CHART, "selected_icon": icons.STACKED_BAR_CHART_OUTLINED, "label": "Estadistica"},
     {"icon":Icons.SUBDIRECTORY_ARROW_LEFT, "selected_icon": Icons.SUBDIRECTORY_ARROW_LEFT_OUTLINED, "label": "Cerrar sesion"},
-
-
 ]
+
+colors_for_charts = {
+      "0":Colors.PINK,
+      "1":Colors.LIGHT_GREEN,
+      "2":Colors.CYAN,
+      "3":Colors.RED_200,
+      "4":Colors.GREEN_ACCENT_700,
+
+      "other":Colors.WHITE
+}
 head = ["Id","fecha","Nombre","Edad","Sexo","Servicio Remitente","Prueba","Resultado","Turno"]
 background_app = '#2c3e50'
 

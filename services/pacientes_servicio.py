@@ -92,6 +92,10 @@ class Paciente_agente_servicio:
     
     async def total_pacientes(self):
         return await self.paciente_agente_repo.get_total_pacientes()   
+    async def all_pacientes(self):
+        results = await self.paciente_agente_repo.get_all()
+        data = self.order_pacientes(results)
+        return data
     
     async def pacientes_servicio(self,servicio=None):
         pruebas_count = await self.paciente_agente_repo.get_pacientes_serivicio(servicio=servicio)

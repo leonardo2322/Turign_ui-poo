@@ -1,9 +1,9 @@
-from flet import Text,Column, TextField,NavigationRail,NavigationRailLabelType,NavigationRailDestination,icons,Padding,Container,ButtonStyle,RoundedRectangleBorder,CrossAxisAlignment,MainAxisAlignment,Row, ElevatedButton,GridView,TextAlign,colors,FontWeight
+from flet import Text,Column, TextField,NavigationRail,NavigationRailLabelType,NavigationRailDestination,icons,Padding,Container,ButtonStyle,RoundedRectangleBorder,CrossAxisAlignment,MainAxisAlignment,Row, ElevatedButton,GridView,TextAlign,colors,FontWeight,Colors
 from config.variables import container_accion,head,turnos
 from utils.functions import dlg_callback #actualizar_turnos
 from services.logica_form import Inputs_data_paciente,Paciente_agente_servicio
 from utils.functions import Boton_P, DataTableManager,CustomCard
-from datetime import datetime
+from services.estadistica import analizar_datos_describe,bar_chart,lines_chart,pie_chart
 class Nav_Bar(Column):
     def __init__(self,destinations,bg,page,main,dlg,*args,**kwargs):
         super().__init__(*args,**kwargs)
@@ -83,6 +83,8 @@ class Nav_Bar(Column):
             
         elif self.selected_index == 1:
             #boton para registrar guardado listado y buscar estos botones son de ejcucion de las funciones este a sido de ejemplo pero debo reescribir este codigo y hacerlo mas puro
+            self.contedor_tabla.controls.clear()
+
             if self.grid.controls:
                 self.grid.clean()
             btn_registrar = Boton_P(
@@ -127,16 +129,46 @@ class Nav_Bar(Column):
                         height=200,
                     )])
         elif self.selected_index == 2:
-            self.page.go("/listar")
+            self.contedor_tabla.controls.clear()
+
+            btn_barras = Boton_P(
+                text="mostrar graficos",
+                icon=icons.CHECK_CIRCLE,
+                width=190,
+                on_click = self.cargar_datos_Analizados,
+                style=ButtonStyle(
+                                shape=RoundedRectangleBorder(radius=10),
+                                shadow_color="black",
+                                padding=Padding(20, 10, 20, 10)
+                            )
+            )
+            self.window_selected([container_accion(botones=[btn_barras]),self.contedor_tabla])
         elif self.selected_index == 3:
             self.page.views.pop()
             
             self.page.go("/")
 
+    # esta funcion se puede poner fuera pero la dejare aqui mientras
+    async def cargar_datos_Analizados(self,e):
+        async def wrapper():
+            pruebas = await self.agent_paciente.all_pacientes()
+            return pruebas
+        cabecera = ["Id","fecha","Nombre","Edad","Sexo","Servicio Remitente","Prueba","Resultado","Turno"]
+        pruebas = await wrapper()
+
+        df = analizar_datos_describe(data=pruebas,columnas=cabecera)
+        pacientes_x_fecha = df["fecha"].value_counts()
+        pacientes_servicio = df["Servicio Remitente"].value_counts()
+        barra_data = bar_chart(pacientes_x_fecha,"Pacientes asistidos en la fecha")
+        pie_data = pie_chart(pacientes_servicio)
+        self.contedor_tabla.controls.clear()
+
+        self.contedor_tabla.controls.extend([barra_data,Container(width=200,height=80),Text("Sevicio Remitente Grafico de torta",size=22,color=Colors.YELLOW_200),Container(width=200,height=80),pie_data,Container(width=200,height=80)])
+        self.page.update()
     async def cards_servicio(self,e):
         tarjetas = []
         turno = e.control.data #"Día"
-        self.turno_name.value = f"Turno: {e.control.data} Fecha {datetime.now().strftime("%d/%m/%Y")}"
+        self.turno_name.value = f"Turno: {e.control.data} Fecha "
         async def wrapper():
             pruebas_count = await self.agent_paciente.pacientes_servicio()
             result_dia = {
@@ -199,6 +231,7 @@ class Nav_Bar(Column):
             # Obtener datos con paginación
             if filtrado == "todos":
                 data = await self.agent_paciente.get_pacientes(page=page, page_size=page_size)
+                
             else:
                 data = await self.agent_paciente.get_search(filtrado)
                 desactivar_siguiente = True

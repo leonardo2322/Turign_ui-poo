@@ -22,7 +22,10 @@ class Paciente_agente_repo:
     async def get_all_pacientes(self, limit=10, offset=0):
         pacientes = await Paciente.all().order_by("id").offset(offset).limit(limit)
         return pacientes
-    
+    async def get_all(self):
+        pacientes = await Paciente.all().order_by("id")
+        return pacientes
+
     async def get_pacientes_serivicio(self,servicio):
         try:
             consulta = Paciente.all()
