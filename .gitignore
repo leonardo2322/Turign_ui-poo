@@ -19,6 +19,7 @@ __pycache__/
 # Archivos específicos de Flet
 .flet/
 *.fletcache
+migrations/
 
 # Dependencias instaladas (si usas pipenv o poetry)
 Pipfile

@@ -2,6 +2,7 @@ import pandas as pd
 from flet import BarChart,BarChartGroup,BarChartRod, Column,Text,Colors,border,ChartAxis,ChartAxisLabel,MainAxisAlignment,LineChartData,CrossAxisAlignment,LineChartDataPoint,LineChart,Border,BorderSide,FontWeight,Container,TextStyle,BoxShadow,PieChart,PieChartEvent,PieChartSection
 from config.variables import colors_for_charts
 import numpy as np
+
 def bar_chart(data:dict,Name):
     
 
@@ -150,6 +151,7 @@ def pie_chart(data:dict):
         expand=True,
     )
     return chart
+
 def analizar_datos_describe(data,columnas):
     df = pd.DataFrame(data, columns=columnas)
 

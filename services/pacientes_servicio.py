@@ -1,12 +1,13 @@
 from repositories.Pacientes import Paciente_agente_repo
 from tortoise.expressions import Q
 from datetime import datetime
+
+
 class Paciente_agente_servicio:
     def __init__(self):
         self.paciente_agente_repo = Paciente_agente_repo()
 
-
-    def validar_paciente(self, nombre, Edad, sexo,servicio_Remitente, prueba):
+    def validar_paciente(self, nombre, Edad, sexo, servicio_Remitente, prueba):
         if not isinstance(nombre, str) or not nombre.strip():
             return {"error": "El nombre debe ser una cadena no vacía."}
         if not isinstance(Edad, int) or Edad < 0:
@@ -17,36 +18,41 @@ class Paciente_agente_servicio:
             return {"error": "Seleccione un servicio"}
         if prueba == "...":
             return {"error": "Seleccione una prueba"}
-        
 
         return None
 
     async def create_paciente(self, nombre, Edad, sexo, servicio_Remitente, prueba, resultado):
-        error = self.validar_paciente(nombre, Edad, sexo,servicio_Remitente, prueba)
+        error = self.validar_paciente(nombre, Edad, sexo, servicio_Remitente, prueba)
         if error:
             return error
-        
+
+        # Convertir la prueba a una lista si es solo una
+        if isinstance(prueba, str):
+            prueba = [prueba]
+
         try:
-            paciente = await self.paciente_agente_repo.create_paciente(nombre.strip(), Edad, sexo, servicio_Remitente, prueba, resultado)
+            paciente = await self.paciente_agente_repo.create_paciente(nombre, Edad, sexo, servicio_Remitente, prueba, resultado)
             return paciente if paciente else {"error": "No se pudo crear el paciente."}
         except Exception as e:
             return {"error": str(e)}
 
     def order_pacientes(self, pacientes):
-       
+        for paciente in pacientes:
+            pass
+        
         return [
-                    (
-                        paciente.id,
-                        paciente.fecha.strftime("%d-%m-%Y"),
-                        paciente.nombre,
-                        paciente.Edad,
-                        paciente.sexo,
-                        paciente.servicio_Remitente,
-                        paciente.prueba,
-                        paciente.resultado,
-                        paciente.turno
-                    ) for paciente in pacientes
-                ]
+            (
+                paciente.id,
+                paciente.fecha.strftime("%d-%m-%Y"),
+                paciente.nombre,
+                paciente.Edad,
+                paciente.sexo,
+                paciente.servicio_Remitente,
+                paciente.pruebas,
+                paciente.resultado,
+                paciente.turno
+            ) for paciente in pacientes
+        ]
     
     async def get_pacientes(self, page=1, page_size=10):
         try:
@@ -57,10 +63,10 @@ class Paciente_agente_servicio:
             return self.order_pacientes(pacientes)
         except Exception as e:
             return {"error": str(e)}
-        
-    async def get_search(self,busqueda):
+
+    async def get_search(self, busqueda):
         query = busqueda.strip()
-       
+
         try:
             if not query:
                 return []
@@ -76,28 +82,28 @@ class Paciente_agente_servicio:
                 "F": Q(fecha__icontains=valor),      # Busca por fecha (puedes ajustar el formato)
                 "E": Q(Edad=valor) if valor.isdigit() else None,  # Busca por edad exacta (solo números)
                 "T": Q(turno__icontains=valor)
-                }
+            }
             filtro = filtros.get(prefijo.upper())
-            
 
             if filtro is None:
                 return {"error": "Prefijo no reconocido. Usa N, S, P, F o E."}
             pacientes = await self.paciente_agente_repo.get_pacientes_filtered(filtro)
-        
+
             if not pacientes:
                 return []
             return self.order_pacientes(pacientes)
         except Exception as e:
             return {"error": str(e)}
-    
+
     async def total_pacientes(self):
-        return await self.paciente_agente_repo.get_total_pacientes()   
+        return await self.paciente_agente_repo.get_total_pacientes()
+
     async def all_pacientes(self):
-        results = await self.paciente_agente_repo.get_all()
+        results = await self.paciente_agente_repo.get_all_pacientes()
         data = self.order_pacientes(results)
         return data
     
-    async def pacientes_servicio(self,servicio=None):
+    async def pacientes_servicio(self, servicio=None):
         pruebas_count = await self.paciente_agente_repo.get_pacientes_serivicio(servicio=servicio)
         dict_pruebas = [dict(item) for item in pruebas_count]
         conteo_dict = {}
@@ -127,34 +133,8 @@ class Paciente_agente_servicio:
                 servicio_existente["total"] += int(total)
             else:
                 # Si el servicio no existe, lo agregamos a la lista
-                conteo_dict[prueba]["servicios"].append({"servicio": servicio, "total": total,"turno":turno_creado})
+                conteo_dict[prueba]["servicios"].append({"servicio": servicio, "total": total, "turno": turno_creado})
 
             # Sumar al total general de la prueba
             conteo_dict[prueba]["total_general"] += int(total)
         return conteo_dict
- 
-    async def paciente_por_fecha(self,busqueda):
-        query = busqueda.strip()
-       
-        try:
-            if not query:
-                return []
-            fecha = datetime.strptime(query, "%d/%m/%Y")
-            if fecha:
-                filtro = Q(fecha__iconstain=fecha)
-                self.paciente_agente_repo.get_pacientes_filtered(filtro)
-            else:
-                return {"error":"la fecha es incorrecta introduce una valida"}
-        except Exception as e:
-            return f"error {str(e)}"
-    async def delete_pacientes(self, id):
-        try:
-            if id.is_integer():
-                id = int(id)
-            else:
-                return {"error": "El ID debe ser un número entero."}
-            
-            paciente = await self.paciente_agente_repo.delete_paciente(id)
-            return paciente if paciente else {"error": "No se pudo eliminar el paciente."}
-        except Exception as e:
-            return {"error": str(e)}

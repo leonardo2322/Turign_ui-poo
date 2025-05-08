@@ -19,7 +19,7 @@ class Nav_Bar(Column):
         self.boton_anterior = None
         self.boton_siguiente = None
         self.show_dlg = dlg
-        self.form_pacientes = Inputs_data_paciente()
+        self.form_pacientes = Inputs_data_paciente(page)
         self.agent_paciente = Paciente_agente_servicio()
         
     def build(self):

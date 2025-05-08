@@ -1,7 +1,6 @@
 import flet as ft
 from connexion import init, close
 from tortoise import run_async
-import asyncio
 from app.ui_iniciar_sesion import UI_iniciar_sesion
 from app.ui_principal import UI_Principal
 async def main(page:ft.Page):

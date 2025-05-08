@@ -1,6 +1,8 @@
 from tortoise import fields
 from tortoise.models import Model
 from datetime import time, datetime
+from tortoise.contrib.pydantic import pydantic_model_creator
+
 class User(Model):
     id = fields.IntField(pk=True)
     name = fields.CharField(max_length=50)
@@ -13,6 +15,14 @@ class User(Model):
     def __str__(self):
         return self.name
     
+class Prueba(Model):
+    id = fields.IntField(pk=True)
+    nombre = fields.CharField(max_length=120, unique=True)
+    fecha = fields.DatetimeField(auto_now_add=True)
+    def __str__(self):
+        return self.nombre
+
+
 class Paciente(Model):
     id = fields.IntField(pk=True)
     nombre = fields.CharField(max_length=50)
@@ -29,15 +39,8 @@ class Paciente(Model):
             ("Consulta especial", "Consulta especial")
         ]
     )
-    prueba = fields.CharField(
-        max_length=120,
-        choices=[
-            ("orina", "orina"), ("Hematologia", "Hematologia"), ("heces", "heces"),
-            ("hiv", "hiv"), ("vdrl", "vdrl"), ("prueba de embarazo", "prueba de embarazo"),
-            ("serologia dengue", "serologia dengue"), ("proteina c reactiva", "proteina c reactiva"),
-            ("serologia H. pilori", "serologia H. pilori"), ("factor Reumatoide", "factor Reumatoide"),
-            ("antigeno Prostatico", "antigeno Prostatico")
-        ]
+    pruebas: fields.ManyToManyRelation["Prueba"] = fields.ManyToManyField(
+        "models.Prueba", related_name="pacientes", through="paciente_pruebas"
     )
     resultado = fields.CharField(
         max_length=120,
@@ -59,3 +62,4 @@ class Paciente(Model):
         else:
             self.turno = "Noche"
         await super().save(*args, **kwargs)
+

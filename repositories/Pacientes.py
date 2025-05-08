@@ -1,17 +1,26 @@
-from model.models import Paciente
+from model.models import Paciente,Prueba
 from tortoise.exceptions import DoesNotExist
 from tortoise.functions import Count
 
 class Paciente_agente_repo:
 
-    async def create_paciente(self, nombre, Edad, sexo, servicio_Remitente, prueba, resultado):
-        paciente = Paciente(nombre=nombre, Edad=Edad, sexo=sexo, servicio_Remitente=servicio_Remitente, prueba=prueba, resultado=resultado)
+    async def create_paciente(self, nombre, Edad, sexo, servicio_Remitente, pruebas, resultado):
+        # Aseguramos que pruebas sea una lista, incluso si es una sola prueba.
+        if isinstance(pruebas, str):
+            pruebas = [pruebas]  # Convertir en lista si es una sola prueba.
+        
+        paciente = Paciente(nombre=nombre, Edad=Edad, sexo=sexo, servicio_Remitente=servicio_Remitente, resultado=resultado)
         await paciente.save()
+        
+        # Ahora asociamos las pruebas con el paciente (ManyToMany)
+        prueba_objects = await Prueba.filter(nombre__in=pruebas)  # Obtener los objetos Prueba por nombre
+        await paciente.pruebas.add(*prueba_objects)  # Asociamos las pruebas al paciente
+        
         return paciente
 
     async def get_paciente(self, id):
         try:
-            paciente = await Paciente.get(id=id)
+            paciente = await Paciente.filter(id=id).prefetch_related("pruebas").first()
             return paciente
         except DoesNotExist:
             return None
@@ -20,43 +29,48 @@ class Paciente_agente_repo:
         return await Paciente.all().count()  
     
     async def get_all_pacientes(self, limit=10, offset=0):
-        pacientes = await Paciente.all().order_by("id").offset(offset).limit(limit)
-        return pacientes
-    async def get_all(self):
-        pacientes = await Paciente.all().order_by("id")
+        pacientes = await Paciente.all().offset(offset).limit(limit).prefetch_related("pruebas")
         return pacientes
 
-    async def get_pacientes_serivicio(self,servicio):
+    async def get_pacientes_serivicio(self, servicio):
         try:
-            consulta = Paciente.all()
+            consulta = Paciente.all().prefetch_related("pruebas")
 
-        # Filtrar por servicio si se proporciona
+            # Filtrar por servicio si se proporciona
             if servicio:
                 consulta = consulta.filter(servicio_Remitente=servicio)
-            pruebas_count = (
-                await consulta
-                .group_by("prueba", "servicio_Remitente","turno") \
-                .annotate(total=Count("servicio_Remitente")) \
-                .values("prueba", "servicio_Remitente", "total","turno")
-            )
-            return pruebas_count
-        except DoesNotExist:
-            return None
-        except Exception as e:
-            return {"error": str(e)}
-        
 
-    async def get_pacientes_filtered(self,filtro):
+            pacientes = await consulta
+            resultado = []
+            for paciente in pacientes:
+                for prueba in paciente.pruebas:
+                    resultado.append({
+                        "prueba": prueba.nombre,
+                        "servicio_Remitente": paciente.servicio_Remitente,
+                        "turno": paciente.turno,
+                    })
+
+            # Contar el total por combinación
+            from collections import Counter
+            conteo = Counter((item["prueba"], item["servicio_Remitente"], item["turno"]) for item in resultado)
+            resultado_final = [
+                {"prueba": k[0], "servicio_Remitente": k[1], "turno": k[2], "total": v}
+                for k, v in conteo.items()
+            ]
+            return resultado_final
+
+        except Exception as e:
+            return {"error": str(e)}
+    
+    async def get_pacientes_filtered(self, filtro):
         try:
-            pruebas_count = (
-                await Paciente.filter(filtro)
-            )
-            return pruebas_count
+            pacientes = await Paciente.filter(filtro).prefetch_related("pruebas")
+            return pacientes
         except DoesNotExist:
             return None
         except Exception as e:
             return {"error": str(e)}
-        
+
     async def delete_paciente(self, id):
         try:
             paciente = await Paciente.get_or_none(id=id)
@@ -64,28 +78,5 @@ class Paciente_agente_repo:
                 return {"error": "El paciente no existe."}
             await paciente.delete()
             return {"success": "Paciente eliminado correctamente."}
-
         except Exception as e:
             return {"error": f"Error al eliminar paciente: {str(e)}"}
-        
-    async def update_paciente(self, id, nombre, Edad, sexo, servicio_Remitente, prueba, resultado):
-        try:
-            # Verificar si el paciente existe
-            paciente = await Paciente.filter(id=id).first()
-            if not paciente:
-                return {"error": "Paciente no encontrado."}
-            # Actualizar datos
-            paciente.nombre = nombre
-            paciente.Edad = Edad
-            paciente.sexo = sexo
-            paciente.servicio_Remitente = servicio_Remitente
-            paciente.prueba = prueba
-            paciente.resultado = resultado
-            await paciente.save()
-
-            return {"success": True, "message": "Paciente actualizado correctamente."}
-
-        except DoesNotExist:
-            return {"error": "Paciente no encontrado."}
-        except Exception as e:
-            return {"error": f"Error inesperado: {str(e)}"}
