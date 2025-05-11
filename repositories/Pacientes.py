@@ -3,11 +3,22 @@ from tortoise.exceptions import DoesNotExist
 from tortoise.functions import Count
 
 class Paciente_agente_repo:
-
+    async def get_all_pruebas(self):
+        try:
+            pruebas = await Prueba.all().order_by("id")
+            return pruebas
+        except Exception as e:
+            return {"error": str(e)}
+        
+    async def create_prueba(self,nombre):
+        prueba = await Prueba.create(nombre=nombre)
+        if prueba:
+            return prueba
+        else:
+            return None
+   
     async def create_paciente(self, nombre, Edad, sexo, servicio_Remitente, pruebas, resultado):
         # Aseguramos que pruebas sea una lista, incluso si es una sola prueba.
-        if isinstance(pruebas, str):
-            pruebas = [pruebas]  # Convertir en lista si es una sola prueba.
         
         paciente = Paciente(nombre=nombre, Edad=Edad, sexo=sexo, servicio_Remitente=servicio_Remitente, resultado=resultado)
         await paciente.save()
@@ -30,6 +41,9 @@ class Paciente_agente_repo:
     
     async def get_all_pacientes(self, limit=10, offset=0):
         pacientes = await Paciente.all().offset(offset).limit(limit).prefetch_related("pruebas")
+        for paciente in pacientes:
+            for prueba in paciente.pruebas:
+                print(f"prueba: {prueba.nombre}")
         return pacientes
 
     async def get_pacientes_serivicio(self, servicio):
@@ -80,3 +94,12 @@ class Paciente_agente_repo:
             return {"success": "Paciente eliminado correctamente."}
         except Exception as e:
             return {"error": f"Error al eliminar paciente: {str(e)}"}
+    async def delete_prueba(self, id):
+        try:
+            prueba = await Prueba.get_or_none(id=id)
+            if not prueba:
+                return {"error": "La prueba no existe."}
+            await prueba.delete()
+            return {"success": "Prueba eliminada correctamente."}
+        except Exception as e:
+            return {"error": f"Error al eliminar prueba: {str(e)}"}

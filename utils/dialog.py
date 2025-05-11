@@ -36,6 +36,7 @@ class Dialog:
  
     def handle_close(self, e):
         if self.dialog:
+            self.content_text = None
             self.page.close(self.dialog)
     def build(self):
         # Crear el diálogo

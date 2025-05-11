@@ -4,6 +4,7 @@ botones_navegacion = [
     {"icon": icons.HOME, "selected_icon": icons.HOME_WORK_OUTLINED, "label": "Servicios"},
     {"icon": icons.NOTE_ADD, "selected_icon": icons.NOTE_ADD_OUTLINED, "label": "Registros"},
     {"icon":icons.STACKED_BAR_CHART, "selected_icon": icons.STACKED_BAR_CHART_OUTLINED, "label": "Estadistica"},
+
     {"icon":Icons.SUBDIRECTORY_ARROW_LEFT, "selected_icon": Icons.SUBDIRECTORY_ARROW_LEFT_OUTLINED, "label": "Cerrar sesion"},
 ]
 
@@ -17,6 +18,7 @@ colors_for_charts = {
       "other":Colors.WHITE
 }
 head = ["Id","fecha","Nombre","Edad","Sexo","Servicio Remitente","Prueba","Resultado","Turno"]
+head_prueba = ["Id","Nombre","Fecha Creado"]
 background_app = '#2c3e50'
 
 def turnos(title,data):

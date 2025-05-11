@@ -20,7 +20,22 @@ class Paciente_agente_servicio:
             return {"error": "Seleccione una prueba"}
 
         return None
-
+    async def listar_pruebas(self):
+        try:
+            pruebas = await self.paciente_agente_repo.get_all_pruebas()
+            if not pruebas:
+                return []
+            return pruebas
+        except Exception as e:
+            return {"error": str(e)}
+    async def create_prueba(self,nombre):
+        if not isinstance(nombre,str) or not nombre.strip():
+            return {"error":"el nombre no debe ser una cadena vacia introduzca un campo valido"}
+        try:
+            resultado = await self.paciente_agente_repo.create_prueba(nombre=nombre)
+            return resultado if resultado else {"error no se pudo crea el paciente."}
+        except Exception as e:
+            return {"error":str(e)}
     async def create_paciente(self, nombre, Edad, sexo, servicio_Remitente, prueba, resultado):
         error = self.validar_paciente(nombre, Edad, sexo, servicio_Remitente, prueba)
         if error:
@@ -37,8 +52,7 @@ class Paciente_agente_servicio:
             return {"error": str(e)}
 
     def order_pacientes(self, pacientes):
-        for paciente in pacientes:
-            pass
+        
         
         return [
             (
@@ -58,6 +72,7 @@ class Paciente_agente_servicio:
         try:
             offset = (page - 1) * page_size  # Calcula el inicio de la paginación
             pacientes = await self.paciente_agente_repo.get_all_pacientes(limit=page_size, offset=offset)
+                
             if not pacientes:
                 return []
             return self.order_pacientes(pacientes)
@@ -138,3 +153,23 @@ class Paciente_agente_servicio:
             # Sumar al total general de la prueba
             conteo_dict[prueba]["total_general"] += int(total)
         return conteo_dict
+    
+    async def delete_prueba(self, id):
+        try:
+            resultado = await self.paciente_agente_repo.delete_prueba(id=id)
+            if 'success' in resultado:
+                return {"success": "Prueba eliminada correctamente."}
+            else:
+                return {"error": "La prueba no existe."}
+        except Exception as e:
+            return {"error": str(e)}
+        
+    async def delete_paciente(self, id):
+        try:
+            resultado = await self.paciente_agente_repo.delete_paciente(id=id)
+            if 'success' in resultado:
+                return {"success": "Paciente eliminado correctamente."}
+            else:
+                return {"error": "El paciente no existe."}
+        except Exception as e:
+            return {"error": str(e)}

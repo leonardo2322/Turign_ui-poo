@@ -40,7 +40,7 @@ class Paciente(Model):
         ]
     )
     pruebas: fields.ManyToManyRelation["Prueba"] = fields.ManyToManyField(
-        "models.Prueba", related_name="pacientes", through="paciente_pruebas"
+        "models.Prueba", related_name="pruebas", through="paciente_pruebas"
     )
     resultado = fields.CharField(
         max_length=120,

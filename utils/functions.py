@@ -2,8 +2,8 @@ from utils.dialog import Dialog
 from flet import ElevatedButton,DataTable,border,BorderSide,DataColumn,colors,Text,Row,DataCell,IconButton,icons,DataRow,Column,Margin,Card,Container,BoxShadow,FontWeight,LinearGradient,alignment,Offset
 # funcion para llamar al dialog y se abre
 from services.pacientes_servicio import Paciente_agente_servicio
-from model.models import Paciente
-from datetime import time
+
+
 def dlg_callback(
           self,e,page,title,content,icon=None,color_icon=None,
           action_def=None,btn_ok=None,btn_cancel=None,icon_btn=None,
@@ -75,6 +75,7 @@ class DataTableManager(Column):
         self.listar = listar
         self.show_dlg = dlg
         self.page = page
+        self.head_table = None
         self.margin = Margin(left=10, top=10, right=10, bottom=20)
     def create_data_table(self, head_table, table_items, data=None):
         """
@@ -88,10 +89,11 @@ class DataTableManager(Column):
         Retorna:
             ft.DataTable: Una instancia de DataTable con los datos cargados.
         """
-
+        self.head_table = head_table
         # Mapeo de clases según el tipo de tabla
         clases = {
             "Pacientes": Paciente_agente_servicio,
+            "Pruebas": Paciente_agente_servicio,
             # "ingredientes": Ingredientes,
             # "receta": Receta,
             # "cantidad_ingredientes": Cant_ing_x_receta
@@ -131,23 +133,26 @@ class DataTableManager(Column):
                 ] + [
                     DataCell(Row(controls=[
                         # IconButton(icon="create", on_click=lambda e, r=row: self.edit_row(r, e, clase)),
-                        IconButton(icon=icons.DELETE, icon_color="red", data="Del", on_click=lambda e:self.permiso_eliminar(e,row, clase))
+                        IconButton(icon=icons.DELETE, icon_color="red", data={"row":row,"row_id":row[0],"nombre":row[2]if self.head_table =="Pacientes" else row[1]}, on_click=lambda e:self.permiso_eliminar(e, clase)),
                     ], spacing=12))
                 ]
             ) for row in data
         ]
         return table
 
+    
 
-
-    def edit_row(self, row, event, clase):
+    def edit_row(self,e, clase):
         """Método para editar una fila"""
-        print(f"Editando: {row} en la clase {clase}")
+        print(f"Editando:  en la clase {clase}")
         # Aquí podrías abrir un modal o actualizar datos en la base
-    def permiso_eliminar(self,e,row,clase):
-        dlg_callback(self,e=e,page=self.page,content=Text("Presiona aceptar para eliminar si estas seguro"),title=f"Estas seguro de querer Eliminar a {row[2]}",icon=icons.WARNING,color_icon="red",action_def=self.delete_row(row,clase),win_height=200,icon_btn=icons.DELETE)
+    def permiso_eliminar(self,e,clase):
+        data = e.control.data
+        row_id = data.get("row_id")
+        nombre = data.get("nombre")
+        dlg_callback(self,e=e,page=self.page,content=Text("Presiona aceptar para eliminar si estas seguro"),title=f"Estas seguro de querer Eliminar a {nombre}",icon=icons.WARNING,color_icon="red",action_def=self.delete_row(row_id,clase,nombre),win_height=200,icon_btn=icons.DELETE)
         
-    def delete_row(self, row, clase):
+    def delete_row(self, row_id, clase,nombre):
         """Método para eliminar una fila"""
         # Aquí podrías ejecutar la lógica de eliminación de la base de d
         
@@ -155,11 +160,17 @@ class DataTableManager(Column):
         async def on_delete_click(e):
 
             instancia = clase()
-            resultado = await instancia.delete_pacientes(id=row[0])
-            await self.listar(e)
-            if resultado:
-                dlg_callback(self,e=e,page=self.page,content=Text("El usuario ha sido eliminado exitosamente"),title=f"eliminaste a {row[2]}",icon=icons.CHECK,color_icon="green",win_height=200,icon_btn=icons.CHECK)
+            if self.head_table == "Pacientes":
+                resultado = await instancia.delete_paciente(id=row_id)
+            elif self.head_table == "Pruebas":
+                resultado = await instancia.delete_prueba(id=row_id)
+            
+            if 'success' in resultado:
+                await self.listar(e)
+
+                dlg_callback(self,e=e,page=self.page,content=Text("El usuario ha sido eliminado exitosamente"),title=f"eliminaste a {nombre}",icon=icons.CHECK,color_icon="green",win_height=200,icon_btn=icons.CHECK)
             self.main.update()
+            
         return on_delete_click
 
     

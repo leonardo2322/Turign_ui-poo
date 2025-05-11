@@ -1,9 +1,11 @@
 from flet import Text,Column, TextField,NavigationRail,NavigationRailLabelType,NavigationRailDestination,icons,Padding,Container,ButtonStyle,RoundedRectangleBorder,CrossAxisAlignment,MainAxisAlignment,Row, ElevatedButton,GridView,TextAlign,colors,FontWeight,Colors
-from config.variables import container_accion,head,turnos
+from config.variables import container_accion,head,turnos,head_prueba
 from utils.functions import dlg_callback #actualizar_turnos
 from services.logica_form import Inputs_data_paciente,Paciente_agente_servicio
+from services.forms.form_pruebas import Formulario_pruebas
 from utils.functions import Boton_P, DataTableManager,CustomCard
 from services.estadistica import analizar_datos_describe,bar_chart,lines_chart,pie_chart
+
 class Nav_Bar(Column):
     def __init__(self,destinations,bg,page,main,dlg,*args,**kwargs):
         super().__init__(*args,**kwargs)
@@ -20,6 +22,7 @@ class Nav_Bar(Column):
         self.boton_siguiente = None
         self.show_dlg = dlg
         self.form_pacientes = Inputs_data_paciente(page)
+        self.form_pruebas = Formulario_pruebas(page)
         self.agent_paciente = Paciente_agente_servicio()
         
     def build(self):
@@ -99,6 +102,30 @@ class Nav_Bar(Column):
                                 padding=Padding(20, 10, 20, 10)
                             )
                     )
+            btn_add_prueba = Boton_P(
+                text="agg prueba",
+                icon = icons.CHECK_CIRCLE_OUTLINE
+                ,width = 190,
+                on_click = lambda e:dlg_callback(self,e,self.page,title="Registrar Pruebas",content=self.form_pruebas.build(),icon=icons.SAVE,color_icon="white",action_def=self.creacion_pruebas,win_height=350),
+                style = ButtonStyle(
+                                shape=RoundedRectangleBorder(radius=10),
+                                shadow_color="black",
+                                padding=Padding(20, 10, 20, 10)
+                            )
+            )
+            btn_listar_prueba = Boton_P(
+                    text="Listar pruebas",
+                    icon=icons.LIST_ALT,
+                    color="white",
+                    on_click= self.listado_pruebas,
+                    width=200,
+                    style=ButtonStyle(
+                                shape=RoundedRectangleBorder(radius=10),
+                                shadow_color="black",
+                                padding=Padding(20, 10, 20, 10)
+                            )
+                    )
+            
             btn_listar = Boton_P(
                     text="Listado pacientes",
                     icon=icons.LIST_ALT,
@@ -124,7 +151,7 @@ class Nav_Bar(Column):
                             )
                     )   
            #aqui inserto los controles de accion y los botones que estan en el archivo variables
-            self.window_selected([container_accion(botones=[btn_registrar,btn_listar,self.busqueda,btn_buscar]),self.contedor_tabla,Container(
+            self.window_selected([container_accion(botones=[btn_add_prueba,btn_listar_prueba,btn_registrar,btn_listar,self.busqueda,btn_buscar]),self.contedor_tabla,Container(
                         width=10,
                         height=200,
                     )])
@@ -143,10 +170,12 @@ class Nav_Bar(Column):
                             )
             )
             self.window_selected([container_accion(botones=[btn_barras]),self.contedor_tabla])
-        elif self.selected_index == 3:
+        elif self.selected_index == 4:
             self.page.views.pop()
             
             self.page.go("/")
+
+
 
     # esta funcion se puede poner fuera pero la dejare aqui mientras
     async def cargar_datos_Analizados(self,e):
@@ -165,6 +194,7 @@ class Nav_Bar(Column):
 
         self.contedor_tabla.controls.extend([barra_data,Container(width=200,height=80),Text("Sevicio Remitente Grafico de torta",size=22,color=Colors.YELLOW_200),Container(width=200,height=80),pie_data,Container(width=200,height=80)])
         self.page.update()
+    
     async def cards_servicio(self,e):
         tarjetas = []
         turno = e.control.data #"Día"
@@ -194,7 +224,29 @@ class Nav_Bar(Column):
         
         self.grid.controls.extend(tarjetas)
         self.page.update()
-    
+    async def creacion_pruebas(self,e):
+        resultado = await self.form_pruebas.guardar_datos()
+        print(resultado)
+        if resultado and not 'error' in resultado:
+            self.form_pruebas.text_hide.value = "Se ha agregado de manera correcta la prueba"
+            self.form_pruebas.text_hide.color = "green"
+        else:
+            self.form_pruebas.text_hide.value = "A ocurrido un error  verifica lo que has introducido o ya existe la prueba"
+            self.form_pruebas.text_hide.color = "red"
+
+        self.page.update()
+
+    async def listado_pruebas(self,e):
+        self.contedor_tabla.controls.clear()
+        pruebas = await self.agent_paciente.listar_pruebas()
+        data = [(p.id, p.nombre, p.fecha.strftime("%d de %B de %Y - %I:%M %p")) for p in pruebas]
+
+        if data:
+            tabla = self.data_Table.create_data_table("Pruebas",head_prueba,data)
+            self.contedor_tabla.controls.append(tabla)
+        else:
+            self.contedor_tabla.controls.append(Text("No se encontraron resultados", color="red"))
+        self.page.update()
     async def ejecucion(self,e):
         #guarda los campos del paciente y los lista
         resultado = await self.form_pacientes.guardar_Campos()
@@ -206,6 +258,7 @@ class Nav_Bar(Column):
     
     async def buscar_paciente(self,e):
         resultado = await self.ejecucion_listar(e,filtrado=self.busqueda.value)
+    
     
     def btn_siguiente(self,e,filtado,page):
         async def wrapper(e):
