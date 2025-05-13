@@ -16,3 +16,52 @@ mi_aplicacion/
 │   └── app_ui.py            # Interfaz gráfica usando Flet
 │
 └── database.py              # Configuración de la base de datos y SQLAlchemy
+
+btn_barras = Boton_P(
+                text="mostrar graficos",
+                icon=icons.CHECK_CIRCLE,
+                width=190,
+                on_click = self.cargar_datos_Analizados,
+                style=ButtonStyle(
+                                shape=RoundedRectangleBorder(radius=10),
+                                shadow_color="black",
+                                padding=Padding(20, 10, 20, 10)
+                            )
+            )
+botones = [
+                self._crear_boton(text="Dia",on_click=self.cards_servicio),
+                self._crear_boton(text="Noche",on_click=self.cards_servicio),
+                self._crear_boton(text="Buscar",on_click=self.cards_servicio),
+
+            ]
+
+        btn_dia = Boton_P(text="Dia",
+                    icon=icons.CHECK_CIRCLE,
+                    width=170,
+                    data="Día",
+                    on_click = self.cards_servicio,
+                    style=ButtonStyle(
+                                shape=RoundedRectangleBorder(radius=10),
+                                shadow_color="black",
+                                padding=Padding(20, 10, 20, 10)
+                            ))
+            btn_noche = Boton_P(text="Noche",
+                    icon=icons.CHECK_CIRCLE,
+                    width=170,
+                    data = "Noche",
+                    on_click = self.cards_servicio,
+                    style=ButtonStyle(
+                                shape=RoundedRectangleBorder(radius=10),
+                                shadow_color="black",
+                                padding=Padding(20, 10, 20, 10)
+                            ))
+            submit_btn = Boton_P(text="Buscar",
+                    icon=icons.SEARCH,
+                    color="white",
+                    width=170,
+                    on_click = self.cards_servicio,
+                    style=ButtonStyle(
+                                shape=RoundedRectangleBorder(radius=10),
+                                shadow_color="black",
+                                padding=Padding(20, 10, 20, 10)
+                            ))

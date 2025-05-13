@@ -50,127 +50,50 @@ class Nav_Bar(Column):
         if self.selected_index == 0:
             self.busqueda.value = ""
             if self.contedor_tabla.controls:
-                self.contedor_tabla.clean()
-            btn_dia = Boton_P(text="Dia",
-                    icon=icons.CHECK_CIRCLE,
-                    width=170,
-                    data="Día",
-                    on_click = self.cards_servicio,
-                    style=ButtonStyle(
-                                shape=RoundedRectangleBorder(radius=10),
-                                shadow_color="black",
-                                padding=Padding(20, 10, 20, 10)
-                            ))
-            btn_noche = Boton_P(text="Noche",
-                    icon=icons.CHECK_CIRCLE,
-                    width=170,
-                    data = "Noche",
-                    on_click = self.cards_servicio,
-                    style=ButtonStyle(
-                                shape=RoundedRectangleBorder(radius=10),
-                                shadow_color="black",
-                                padding=Padding(20, 10, 20, 10)
-                            ))
-            submit_btn = Boton_P(text="Buscar",
-                    icon=icons.SEARCH,
-                    color="white",
-                    width=170,
-                    on_click = self.cards_servicio,
-                    style=ButtonStyle(
-                                shape=RoundedRectangleBorder(radius=10),
-                                shadow_color="black",
-                                padding=Padding(20, 10, 20, 10)
-                            ))
+                self.contedor_tabla.controls.clear()
             
-            self.window_selected([container_accion(botones=[btn_dia,btn_noche,self.busqueda,submit_btn]),turnos(self.turno_name,[]),self.grid,Container(width=200,height=80)])
+          
+       
+            botones = [
+                self._crear_boton(text="Dia",on_click=self.cards_servicio,data="Día",width=170,color="white"),
+                self._crear_boton(text="Noche",on_click=self.cards_servicio, data="Noche",width=170,color="white"),
+                self.busqueda,
+                self._crear_boton(text="Buscar",on_click=self.cards_servicio,icon=icons.SEARCH,width=170,color="blue"),
+
+            ]
+            self.window_selected([container_accion(botones=botones),turnos(self.turno_name,[]),self.grid,Container(width=200,height=80)])
             
         elif self.selected_index == 1:
             #boton para registrar guardado listado y buscar estos botones son de ejcucion de las funciones este a sido de ejemplo pero debo reescribir este codigo y hacerlo mas puro
             self.contedor_tabla.controls.clear()
 
             if self.grid.controls:
-                self.grid.clean()
-            btn_registrar = Boton_P(
-                    text="Registrar",
-                    icon=icons.NOTE_ADD,
-                    color="white",
-                    on_click= lambda e:dlg_callback(self,e,self.page,title="Registrar Pacientes",content=self.form_pacientes.build(),icon=icons.SAVE,color_icon="white",action_def=self.ejecucion,win_height=650,disabled_btn=True),
-                    width=170,
-                    style=ButtonStyle(
-                                shape=RoundedRectangleBorder(radius=10),
-                                shadow_color="black",
-                                padding=Padding(20, 10, 20, 10)
-                            )
-                    )
-            btn_add_prueba = Boton_P(
-                text="agg prueba",
-                icon = icons.CHECK_CIRCLE_OUTLINE
-                ,width = 190,
-                on_click = lambda e:dlg_callback(self,e,self.page,title="Registrar Pruebas",content=self.form_pruebas.build(),icon=icons.SAVE,color_icon="white",action_def=self.creacion_pruebas,win_height=350),
-                style = ButtonStyle(
-                                shape=RoundedRectangleBorder(radius=10),
-                                shadow_color="black",
-                                padding=Padding(20, 10, 20, 10)
-                            )
-            )
-            btn_listar_prueba = Boton_P(
-                    text="Listar pruebas",
-                    icon=icons.LIST_ALT,
-                    color="white",
-                    on_click= self.listado_pruebas,
-                    width=200,
-                    style=ButtonStyle(
-                                shape=RoundedRectangleBorder(radius=10),
-                                shadow_color="black",
-                                padding=Padding(20, 10, 20, 10)
-                            )
-                    )
-            
-            btn_listar = Boton_P(
-                    text="Listado pacientes",
-                    icon=icons.LIST_ALT,
-                    color="white",
-                    on_click= self.ejecucion_listar,
-                    width=200,
-                    style=ButtonStyle(
-                                shape=RoundedRectangleBorder(radius=10),
-                                shadow_color="black",
-                                padding=Padding(20, 10, 20, 10)
-                            )
-                    )
-            btn_buscar = Boton_P(
-                    text="Buscar",
-                    icon=icons.SEARCH,
-                    color="white",
-                    on_click= self.buscar_paciente,
-                    width=140,
-                    style=ButtonStyle(
-                                shape=RoundedRectangleBorder(radius=10),
-                                shadow_color="black",
-                                padding=Padding(20, 10, 20, 10)
-                            )
-                    )   
+                self.grid.controls.clear()
+            botones = [
+                self._crear_boton(text="Registrar Paciente", on_click= lambda e:dlg_callback(self,e,self.page,title="Registrar Pacientes",content=self.form_pacientes.build(),icon=icons.SAVE,color_icon="white",action_def=self.ejecucion,win_height=650,disabled_btn=True),width=190,icon=icons.CHECK_CIRCLE_OUTLINE),
+
+                self._crear_boton(text="agg prueba",on_click = lambda e:dlg_callback(self,e,self.page,title="Registrar Pruebas",content=self.form_pruebas.build(),icon=icons.SAVE,color_icon="white",action_def=self.creacion_pruebas,win_height=200),width=190,icon=icons.CHECK_CIRCLE_OUTLINE),
+                self._crear_boton(text="Listar pruebas",on_click= self.listado_pruebas, icon=icons.LIST_ALT,width=200),
+                self._crear_boton(text="Listado pacientes",
+                    icon=icons.LIST_ALT,on_click=self.ejecucion_listar,width=200,),
+                self.busqueda,
+                self._crear_boton(text="Buscar",
+                    icon=icons.SEARCH,on_click=self.buscar_paciente,width=140)
+            ]
+
            #aqui inserto los controles de accion y los botones que estan en el archivo variables
-            self.window_selected([container_accion(botones=[btn_add_prueba,btn_listar_prueba,btn_registrar,btn_listar,self.busqueda,btn_buscar]),self.contedor_tabla,Container(
+            self.window_selected([container_accion(botones=botones),self.contedor_tabla,Container(
                         width=10,
                         height=200,
                     )])
         elif self.selected_index == 2:
             self.contedor_tabla.controls.clear()
 
-            btn_barras = Boton_P(
-                text="mostrar graficos",
-                icon=icons.CHECK_CIRCLE,
-                width=190,
-                on_click = self.cargar_datos_Analizados,
-                style=ButtonStyle(
-                                shape=RoundedRectangleBorder(radius=10),
-                                shadow_color="black",
-                                padding=Padding(20, 10, 20, 10)
-                            )
-            )
-            self.window_selected([container_accion(botones=[btn_barras]),self.contedor_tabla])
-        elif self.selected_index == 4:
+            botones = [
+                self._crear_boton(text="mostrar graficos",width=190,on_click = self.cargar_datos_Analizados)
+            ]
+            self.window_selected([container_accion(botones=botones),self.contedor_tabla])
+        elif self.selected_index == 3:
             self.page.views.pop()
             
             self.page.go("/")
@@ -181,7 +104,21 @@ class Nav_Bar(Column):
             self.page.dlg.boton_aceptar.disabled = False
             self.page.dlg.boton_aceptar.update()
             self.page.update()
-
+    def _crear_boton(self, text, icon=None, data=None, on_click=None,bgcolor=None,width=None,color=None):
+        return Boton_P(
+            text=text,
+            icon=icon,
+            data=data,
+            color=color,
+            bgcolor=bgcolor,
+            on_click=on_click,
+            width=width,
+            style=ButtonStyle(
+                shape=RoundedRectangleBorder(radius=10),
+                shadow_color="black",
+                padding=Padding(20, 10, 20, 10)
+            )
+        )
     # esta funcion se puede poner fuera pero la dejare aqui mientras
     async def cargar_datos_Analizados(self,e):
         async def wrapper():
@@ -261,6 +198,7 @@ class Nav_Bar(Column):
         resultado = await self.form_pacientes.guardar_Campos()
         if resultado:
             await self.ejecucion_listar(e)
+            dlg_callback(self,e,self.page,title="Paciente agregado",content=Text("El paciente ha sido agregado exitosamente"),icon=icons.CHECK_CIRCLE,color_icon="green",win_height=200),
         else:
             dlg_callback(self,e,self.page,title="Error de ingreso",content=Text("has cometido un error verifica y vuelve a intentarlo Debes relleanar todos los campos y la edad en numeros"),icon=icons.DANGEROUS,color_icon="red",win_height=200),
         self.page.update()
@@ -276,7 +214,7 @@ class Nav_Bar(Column):
     
 
     def window_selected(self,accion:list):
-        self.main.clean()
+        self.main.controls.clear()
         self.main.controls.extend(accion)
         self.main.update()
     
@@ -302,6 +240,8 @@ class Nav_Bar(Column):
                 self.contedor_tabla.clean()
                 self.contedor_tabla.controls.append(Text(f"No se encontraron resultados {data}", color="red"))
             else:
+                
+                print(data)
                 tabla = self.data_Table.create_data_table("Pacientes", cabecera, data)
                 self.contedor_tabla.controls.clear()
                 self.contedor_tabla.controls.append(tabla)

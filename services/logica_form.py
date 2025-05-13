@@ -54,7 +54,7 @@ class Inputs_data_paciente:
                     width=350
                 )
         self.id_to_nombre = {}
-        self.btn_next = ElevatedButton(text="Siguiente",icon=icons.SKIP_NEXT,on_click=self.manejador)
+        self.btn_next = ElevatedButton(text="Siguiente",icon=icons.ARROW_FORWARD,on_click=self.manejador)
         self.btn_all = ElevatedButton(text="Todos",icon=icons.ALL_INBOX,on_click=self.btn_todos)
         self.content = Column(
             controls=[
@@ -96,7 +96,12 @@ class Inputs_data_paciente:
             botones = Row(controls=[self.btn_next,self.btn_all,self.boton_borrar,self.fin_seleccion])
             datos = self.obtener_datos()
             if 'error' in datos:
-                self.content.controls.append(Text(value=datos.get("error"),color="red",size=18))
+                self.content.controls = [
+                    ctrl for ctrl in self.content.controls 
+                    if not (isinstance(ctrl, Text) and ctrl.color == "red")
+                ]
+                texto_error = Text(value=datos.get("error"),color="red",size=18)
+                self.content.controls.append(texto_error)
                 self.content.update()
                 return None
             else:
@@ -104,10 +109,11 @@ class Inputs_data_paciente:
                 self.btn_next.text = "Elegir"
                 self.btn_next.icon = icons.CHECK
                 self.btn_next.on_click = self.guardar_prueba
-                
+                texto = Text(value=f"Introdusca las pruebas para el usuario {datos.get("Nombre")}")
+                self.content.controls.extend([self.subtitle,texto,self.prueba])
                 self.prueba.options = await self.pruebas_disponibles()
                 
-                self.content.controls.extend([self.subtitle,Text(value=f"Introdusca las pruebas para el usuario {datos.get("Nombre")}"),self.prueba, botones,self.listado_pruebas])
+                self.content.controls.extend([botones,self.listado_pruebas])
                 self.content.update()
 
         except ValueError:
@@ -115,7 +121,33 @@ class Inputs_data_paciente:
             return None
         
         return True
-    
+    def _reset_form(self):
+        """Restablecer el formulario a su estado inicial"""
+        self.btn_next.text = "Siguiente"
+        self.btn_next.icon = icons.ARROW_FORWARD
+        self.btn_next.disabled = False
+        self.subtitle.value = "Introduzca los datos del paciente"
+        self.subtitle.color = "blue"
+        self.listado_pruebas.controls.clear()
+        self.boton_borrar.disabled = False
+        self.fin_seleccion.disabled = False
+        controles_iniciales = Column(
+            controls=[
+                self.subtitle,
+                self.nombre,
+                self.edad,
+                Text("Sexo"),
+                self.sexo,
+                Text("Servicio"),
+                self.servicio,
+                self.btn_next
+            ],
+            alignment=MainAxisAlignment.CENTER,
+            expand=True
+        )
+        self.content.controls.clear()
+        self.content.controls.append(controles_iniciales)
+        # Actualizar el contenido para que los cambios sean visibles
     async def terminar_seleccion(self,e):
         if len(self.pruebas) > 0:
             self.prueba.disabled = True
@@ -209,13 +241,13 @@ class Inputs_data_paciente:
             )
         
         if 'error' not in  resultado:
-            print("dentra en resultado")
             self.clean()
+            self._reset_form()
         else:
             self.clean()
-            print("en none",resultado)
             return None
-        print(resultado,"fuera")
+        self.content.update()
+        
         return resultado
     
     def obtener_datos(self):
@@ -224,7 +256,10 @@ class Inputs_data_paciente:
             nombre = sanitizar_nombre(self.nombre.value)
             edad = sanitizar_edad(self.edad.value)
             sexo = sanitizar_sexo(self.sexo.value)
-            
+            if self.servicio.value == "..." or not self.servicio.value:
+                raise ValueError("debes rellenar todos los campos")
+            if not nombre or not edad or sexo == "...":
+                raise ValueError("debes rellenar los campos")
             return {
                 "Nombre": nombre,
                 "Edad": edad,

@@ -80,7 +80,22 @@ class Paciente_agente_servicio:
         try:
             offset = (page - 1) * page_size  # Calcula el inicio de la paginación
             pacientes = await self.paciente_agente_repo.get_all_pacientes(limit=page_size, offset=offset)
-                
+            datos_organizados = []
+            for paciente in pacientes:
+                    pruebas = [prueba.nombre async for prueba in pacientes.pruebas]
+                    pruebas_str = ", ".join(pruebas)
+                    tupla_paciente = (
+                        paciente.id,
+                        paciente.fecha.strftime("%d-%m-%Y") if hasattr(paciente, "fecha") else "Sin fecha",
+                        paciente.nombre,
+                        paciente.edad,
+                        paciente.sexo,
+                        paciente.servicio,
+                        pruebas_str,
+                        paciente.estatus,
+                        paciente.turno,
+                    )
+                    datos_organizados.append(tupla_paciente)  
             if not pacientes:
                 return []
             return self.order_pacientes(pacientes)

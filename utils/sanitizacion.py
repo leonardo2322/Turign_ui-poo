@@ -17,7 +17,8 @@ def sanitizar_edad(edad_str: str) -> int:
     raise ValueError("Edad inválida")
 
 def sanitizar_sexo(sexo: str) -> str:
-    sexo = sexo.strip().upper()
+    if sexo:
+        sexo = sexo.strip().upper()
     if sexo in ['M', 'F', 'O']:
         return sexo
     raise ValueError("Sexo inválido (usa M, F u O)")
