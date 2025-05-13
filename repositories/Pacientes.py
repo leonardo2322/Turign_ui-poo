@@ -24,7 +24,7 @@ class Paciente_agente_repo:
         await paciente.save()
         
         # Ahora asociamos las pruebas con el paciente (ManyToMany)
-        prueba_objects = await Prueba.filter(nombre__in=pruebas)  # Obtener los objetos Prueba por nombre
+        prueba_objects = await Prueba.filter(id__in=pruebas)  # Obtener los objetos Prueba por id
         await paciente.pruebas.add(*prueba_objects)  # Asociamos las pruebas al paciente
         
         return paciente
@@ -42,8 +42,10 @@ class Paciente_agente_repo:
     async def get_all_pacientes(self, limit=10, offset=0):
         pacientes = await Paciente.all().offset(offset).limit(limit).prefetch_related("pruebas")
         for paciente in pacientes:
-            for prueba in paciente.pruebas:
-                print(f"prueba: {prueba.nombre}")
+            print(f"Paciente: {paciente.nombre} - ID: {paciente.id}")
+            pruebas = await paciente.pruebas.all()  # Esto es necesario para cargar las pruebas asociadas
+            for prueba in pruebas:
+                print(f"  Prueba: {prueba.nombre}")
         return pacientes
 
     async def get_pacientes_serivicio(self, servicio):

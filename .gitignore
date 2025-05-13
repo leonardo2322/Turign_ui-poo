@@ -15,7 +15,7 @@ __pycache__/
 .vscode/
 *.swp
 *.swo
-
+config/configs.py
 # Archivos específicos de Flet
 .flet/
 *.fletcache

@@ -6,7 +6,7 @@ TORTOISE_ORM = {
     },
     "apps": {
         "models": {
-            "models": ["model.models"],  # Ruta correcta a tus modelos
+            "models": ["model.models","aerich.models"],  # Ruta correcta a tus modelos
             "default_connection": "default",  # Asegúrate de que esta línea esté presente
         }
     }

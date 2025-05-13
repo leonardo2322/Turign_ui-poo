@@ -2,14 +2,16 @@ from flet import TextField, Dropdown,dropdown, Column,MainAxisAlignment, Text,El
 from services.pacientes_servicio import Paciente_agente_servicio
 from services.errors_show import mostrar_mensaje_error
 from utils.sanitizacion import sanitizar_nombre,sanitizar_edad,sanitizar_sexo
+
 class Inputs_data_paciente:
-    def __init__(self,page, *args, **kwargs):
+    def __init__(self,page,disabled_btn, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.repo = Paciente_agente_servicio()
         self.nombre = TextField(label="Nombre",hint_text="Introduzca el nombre")
         self.edad = TextField(label="Edad",hint_text="Introduzca la edad")
         self.subtitle = Text("Introduzca los datos del paciente",size=20,color="blue")
         self.pruebas = {}
+        self.disabled_btn = disabled_btn
         self.page = page
         self.boton_borrar = ElevatedButton(text="Borrar",icon=icons.DELETE,on_click=lambda e:self.borrar_de_la_lista(e))
         self.fin_seleccion = ElevatedButton(text="Fin seleccion",icon=icons.CHECK,on_click=self.terminar_seleccion)
@@ -47,20 +49,11 @@ class Inputs_data_paciente:
                     label_content="Prueba",
                     options=[
                         dropdown.Option("...","eliga una opción ..."),
-                        dropdown.Option("Orina", "orina"),
-                        dropdown.Option("Heces", "heces"),
-                        dropdown.Option("Hematologia", "Hematologia"),
-                        dropdown.Option("HIV", "hiv"),
-                        dropdown.Option("VDRL", "vdrl"),
-                        dropdown.Option("Prueba de embarazo", "prueba de embarazo"),
-                        dropdown.Option("Serologia dengue", "serologia dengue"),
-                        dropdown.Option("Proteina c reactiva", "proteina c reactiva"),
-                        dropdown.Option("Serologia H. pilori", "serologia H. pilori"),
-                        dropdown.Option("Factor Reumatoide", "factor Reumatoide"),
-                        dropdown.Option("Antigeno Prostatico", "antigeno Prostatico"),
+                        
                     ],
                     width=350
                 )
+        self.id_to_nombre = {}
         self.btn_next = ElevatedButton(text="Siguiente",icon=icons.SKIP_NEXT,on_click=self.manejador)
         self.btn_all = ElevatedButton(text="Todos",icon=icons.ALL_INBOX,on_click=self.btn_todos)
         self.content = Column(
@@ -89,11 +82,17 @@ class Inputs_data_paciente:
         self.sexo.value = "..."
         self.servicio.value = "..."
         self.prueba.value = "..."
-        
-    def manejador(self,e):
+
+    async def pruebas_disponibles(self):
+        pruebas = await self.repo.listar_pruebas()
+        self.id_to_nombre = {str(p.id): p.nombre for p in pruebas}
+        return [dropdown.Option(prueba.id,prueba.nombre) for prueba in pruebas]
+    
+    async def manejador(self,e):
         """Manejador para el evento de cambio pantalla en el form"""
         
         try:
+            
             botones = Row(controls=[self.btn_next,self.btn_all,self.boton_borrar,self.fin_seleccion])
             datos = self.obtener_datos()
             if 'error' in datos:
@@ -105,6 +104,9 @@ class Inputs_data_paciente:
                 self.btn_next.text = "Elegir"
                 self.btn_next.icon = icons.CHECK
                 self.btn_next.on_click = self.guardar_prueba
+                
+                self.prueba.options = await self.pruebas_disponibles()
+                
                 self.content.controls.extend([self.subtitle,Text(value=f"Introdusca las pruebas para el usuario {datos.get("Nombre")}"),self.prueba, botones,self.listado_pruebas])
                 self.content.update()
 
@@ -114,8 +116,7 @@ class Inputs_data_paciente:
         
         return True
     
-    def terminar_seleccion(self,e):
-        print(len(self.pruebas))
+    async def terminar_seleccion(self,e):
         if len(self.pruebas) > 0:
             self.prueba.disabled = True
             self.btn_next.disabled = True
@@ -123,6 +124,7 @@ class Inputs_data_paciente:
             self.btn_all.disabled = True
             self.subtitle.value = "Pruebas seleccionadas Correctamente las pruebas seleccionas \n abajo presiona aceptar para continuar"
             self.subtitle.color = "green"
+            self.disabled_btn(e)
             self.fin_seleccion.disabled = True
             self.content.update()
         else:
@@ -153,7 +155,7 @@ class Inputs_data_paciente:
         print(e)
         for prueba in self.prueba.options:
             if prueba.key != "...":
-                self.pruebas[prueba.key] = prueba.key
+                self.pruebas[prueba.key] = prueba.text
 
         print(self.pruebas)
         self.prueba.disabled = True
@@ -166,28 +168,35 @@ class Inputs_data_paciente:
     
     def guardar_prueba(self,e):
         """Guarda la prueba seleccionada en el dropdown"""
-        prueba = self.prueba.value
+        prueba =str(self.prueba.value)
         if prueba != "..." and prueba != None:
             self.subtitle.value = "Introduzca los datos del paciente"
             self.subtitle.color = "blue"
-            self.pruebas[prueba] = prueba
-            self.listado_pruebas.controls.append(Text(value=f"Prueba: {prueba}"))
-            self.listado_pruebas.update()
+            prueba_nombre = self.id_to_nombre.get(prueba, "Desconocido")
+            if prueba not in self.pruebas:
+                self.pruebas[prueba] = prueba_nombre
+                self.listado_pruebas.controls.append(Text(value=f"Prueba: { prueba_nombre }"))
             self.prueba.value = "..."
             self.prueba.update()
-            self.content.update()
+            self.listado_pruebas.update()
+
             return None
         else:
             self.prueba.value = "..."
             self.subtitle.value = "Debes Elegir una prueba"
             self.subtitle.color = "red"
-            self.content.update()
+
+            self.prueba.update()
+            self.listado_pruebas.update()
+
+
             return None
     
     async def guardar_Campos(self):
         
         try:
             datos = self.obtener_datos()
+            pruebas = [int(prueba) for prueba in self.pruebas.keys()]
         except Exception as e:
             return None
         resultado = await self.repo.create_paciente(
@@ -195,15 +204,18 @@ class Inputs_data_paciente:
                 Edad=datos.get("Edad"),
                 sexo=datos.get("Sexo"),
                 servicio_Remitente=datos.get("Servicio"),
-                prueba=datos.get("Prueba"),
+                prueba=pruebas,
                 resultado="Pendiente"
             )
-        if resultado:
+        
+        if 'error' not in  resultado:
+            print("dentra en resultado")
             self.clean()
         else:
             self.clean()
+            print("en none",resultado)
             return None
-
+        print(resultado,"fuera")
         return resultado
     
     def obtener_datos(self):

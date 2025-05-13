@@ -13,7 +13,7 @@ class Nav_Bar(Column):
         self.page = page
         self.bg = bg
         self.main = main    
-        self.data_Table = DataTableManager(main,listar=self.ejecucion_listar,dlg=dlg,page=page)
+        self.data_Table = DataTableManager(main,listar=self.ejecucion_listar,dlg=dlg,page=page,listar_prueba=self.listado_pruebas)
         self.busqueda = TextField(hint_text="Buscar....",width=270)
         self.contedor_tabla = Column(alignment=MainAxisAlignment.CENTER,horizontal_alignment=CrossAxisAlignment.CENTER,scroll='always')
         self.grid = GridView(expand=1, runs_count=4, spacing=15, run_spacing=10)
@@ -21,7 +21,7 @@ class Nav_Bar(Column):
         self.boton_anterior = None
         self.boton_siguiente = None
         self.show_dlg = dlg
-        self.form_pacientes = Inputs_data_paciente(page)
+        self.form_pacientes = Inputs_data_paciente(page,self.cambiar_estado)
         self.form_pruebas = Formulario_pruebas(page)
         self.agent_paciente = Paciente_agente_servicio()
         
@@ -94,7 +94,7 @@ class Nav_Bar(Column):
                     text="Registrar",
                     icon=icons.NOTE_ADD,
                     color="white",
-                    on_click= lambda e:dlg_callback(self,e,self.page,title="Registrar Pacientes",content=self.form_pacientes.build(),icon=icons.SAVE,color_icon="white",action_def=self.ejecucion,win_height=650),
+                    on_click= lambda e:dlg_callback(self,e,self.page,title="Registrar Pacientes",content=self.form_pacientes.build(),icon=icons.SAVE,color_icon="white",action_def=self.ejecucion,win_height=650,disabled_btn=True),
                     width=170,
                     style=ButtonStyle(
                                 shape=RoundedRectangleBorder(radius=10),
@@ -176,6 +176,11 @@ class Nav_Bar(Column):
             self.page.go("/")
 
 
+    def cambiar_estado(self,e):
+        if self.page.dlg.boton_aceptar.disabled:
+            self.page.dlg.boton_aceptar.disabled = False
+            self.page.dlg.boton_aceptar.update()
+            self.page.update()
 
     # esta funcion se puede poner fuera pero la dejare aqui mientras
     async def cargar_datos_Analizados(self,e):
@@ -230,6 +235,7 @@ class Nav_Bar(Column):
         if resultado and not 'error' in resultado:
             self.form_pruebas.text_hide.value = "Se ha agregado de manera correcta la prueba"
             self.form_pruebas.text_hide.color = "green"
+            await self.listado_pruebas(e)
         else:
             self.form_pruebas.text_hide.value = "A ocurrido un error  verifica lo que has introducido o ya existe la prueba"
             self.form_pruebas.text_hide.color = "red"
@@ -247,8 +253,11 @@ class Nav_Bar(Column):
         else:
             self.contedor_tabla.controls.append(Text("No se encontraron resultados", color="red"))
         self.page.update()
+
     async def ejecucion(self,e):
         #guarda los campos del paciente y los lista
+        
+
         resultado = await self.form_pacientes.guardar_Campos()
         if resultado:
             await self.ejecucion_listar(e)

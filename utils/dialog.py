@@ -2,7 +2,7 @@ import flet as ft
 
 
 class Dialog:
-    def __init__(self,page:ft.Page, title:str="titulo", content_text:list=[],icon:ft.icons=ft.icons.INFO,color_icon:str="#80DAEB",action_def=None,btn_icon:ft.icons=None,btn_ok:str= None,btn_cancel:str = None,win_height= None,btn_data = None,*args, **kwargs):
+    def __init__(self,page:ft.Page, title:str="titulo", content_text:list=[],icon:ft.icons=ft.icons.INFO,color_icon:str="#80DAEB",action_def=None,btn_icon:ft.icons=None,btn_ok:str= None,btn_cancel:str = None,win_height= None,btn_data = None,disabled_btn = None,*args, **kwargs):
         self.page = page
         self.title = title
         self.content_text = content_text
@@ -15,10 +15,11 @@ class Dialog:
         self.btn_icon = btn_icon
         self.win_height = win_height
         self.btn_data = btn_data
+        self.disabled_btn = disabled_btn
     @classmethod    
     def from_data(cls,data):
         
-        (page,title, content, icon,color, action_def,btn_ok,btn_cancel,btn_icon, win_height,btn_data) = data
+        (page,title, content, icon,color, action_def,btn_ok,btn_cancel,btn_icon, win_height,btn_data,disabled_btn) = data
 
         return cls(
             page = page,
@@ -31,7 +32,8 @@ class Dialog:
             btn_cancel = btn_cancel,
             btn_icon = btn_icon,
             win_height = win_height,
-            btn_data = btn_data
+            btn_data = btn_data,
+            disabled_btn = disabled_btn
         )
  
     def handle_close(self, e):
@@ -42,6 +44,8 @@ class Dialog:
         # Crear el diálogo
         if self.dialog:
             self.page.close(self.dialog)
+        self.boton_aceptar = ft.ElevatedButton("Aceptar" if self.name_btn_ok is None else self.name_btn_ok,data=self.btn_data, on_click=self.set_handle_yes_async if  self.action_def is not None else self.handle_close, icon=ft.icons.SAVE if self.btn_icon is None else self.btn_icon,disabled=self.disabled_btn if self.disabled_btn is not None else False)
+
         self.dialog = ft.AlertDialog(
             modal=True,
             adaptive=True,
@@ -58,7 +62,7 @@ class Dialog:
                         
                 ),
             actions=[
-                    ft.ElevatedButton("Aceptar" if self.name_btn_ok is None else self.name_btn_ok,data=self.btn_data, on_click=self.set_handle_yes_async if  self.action_def is not None else self.handle_close, icon=ft.icons.SAVE if self.btn_icon is None else self.btn_icon),
+                    self.boton_aceptar,
                     ft.ElevatedButton("Cancelar" if self.btn_name_cancel is None else self.btn_name_cancel, on_click=self.handle_close), 
                 ],
             

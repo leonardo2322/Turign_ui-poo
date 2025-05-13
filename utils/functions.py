@@ -2,12 +2,12 @@ from utils.dialog import Dialog
 from flet import ElevatedButton,DataTable,border,BorderSide,DataColumn,colors,Text,Row,DataCell,IconButton,icons,DataRow,Column,Margin,Card,Container,BoxShadow,FontWeight,LinearGradient,alignment,Offset
 # funcion para llamar al dialog y se abre
 from services.pacientes_servicio import Paciente_agente_servicio
-
+from tortoise.expressions import Q
 
 def dlg_callback(
           self,e,page,title,content,icon=None,color_icon=None,
           action_def=None,btn_ok=None,btn_cancel=None,icon_btn=None,
-          win_height=None,btn_data=None):
+          win_height=None,btn_data=None,disabled_btn=None):
         # esta es la instancia del dialogo la clase como tal es como decir un base y todo se construye en el momento de ejecucion
         instance_dlg = Dialog
         try:
@@ -23,7 +23,8 @@ def dlg_callback(
                 btn_cancel,
                 icon_btn,
                 win_height,
-                btn_data
+                btn_data,
+                disabled_btn
             )
             # esta funcion viene desde la plantilla main.py y es la que va a mostrar el dialogo
             self.show_dlg(e,data,instance_dlg)
@@ -69,11 +70,12 @@ class CustomCard(Card):
         )
 
 class DataTableManager(Column):
-    def __init__(self, main,listar,dlg,page,*args, **kwargs):
+    def __init__(self, main,listar,dlg,page,listar_prueba,*args, **kwargs):
         super().__init__(*args, **kwargs)
         self.main = main
         self.listar = listar
         self.show_dlg = dlg
+        self.listar_prueba = listar_prueba
         self.page = page
         self.head_table = None
         self.margin = Margin(left=10, top=10, right=10, bottom=20)
@@ -162,16 +164,18 @@ class DataTableManager(Column):
             instancia = clase()
             if self.head_table == "Pacientes":
                 resultado = await instancia.delete_paciente(id=row_id)
-            elif self.head_table == "Pruebas":
-                resultado = await instancia.delete_prueba(id=row_id)
-            
-            if 'success' in resultado:
                 await self.listar(e)
 
+            elif self.head_table == "Pruebas":
+                resultado = await instancia.delete_prueba(id=row_id)
+                await self.listar_prueba(e)
+            if 'success' in resultado:
                 dlg_callback(self,e=e,page=self.page,content=Text("El usuario ha sido eliminado exitosamente"),title=f"eliminaste a {nombre}",icon=icons.CHECK,color_icon="green",win_height=200,icon_btn=icons.CHECK)
             self.main.update()
             
         return on_delete_click
+
+
 
     
 # async def actualizar_turnos():

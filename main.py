@@ -8,7 +8,9 @@ async def main(page:ft.Page):
     page.window.width = 1470
     def show_dlg(e,data,instancia):
         if data:
-            page.open(instancia.build(instancia.from_data(data)))
+            dlg = instancia.from_data(data)
+            page.dlg = dlg
+            page.open(dlg.build())
             page.update()
         else:
             page.open(instancia.build())

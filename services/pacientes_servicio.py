@@ -1,6 +1,14 @@
 from repositories.Pacientes import Paciente_agente_repo
 from tortoise.expressions import Q
-from datetime import datetime
+from datetime import datetime,timedelta
+#F:21-03-2025
+def parse_fecha(valor):
+    try:
+        fecha_obj = datetime.strptime(valor, "%d-%m-%Y")
+        fecha_siguiente = fecha_obj + timedelta(days=1)
+        return Q(fecha__gte=fecha_obj, fecha__lt=fecha_siguiente)
+    except ValueError:
+        return None
 
 
 class Paciente_agente_servicio:
@@ -44,9 +52,9 @@ class Paciente_agente_servicio:
         # Convertir la prueba a una lista si es solo una
         if isinstance(prueba, str):
             prueba = [prueba]
-
+        print(prueba)
         try:
-            paciente = await self.paciente_agente_repo.create_paciente(nombre, Edad, sexo, servicio_Remitente, prueba, resultado)
+            paciente = await self.paciente_agente_repo.create_paciente(nombre=nombre,Edad=Edad,sexo=sexo, servicio_Remitente=servicio_Remitente,pruebas= prueba, resultado=resultado)
             return paciente if paciente else {"error": "No se pudo crear el paciente."}
         except Exception as e:
             return {"error": str(e)}
@@ -94,18 +102,21 @@ class Paciente_agente_servicio:
                 "N": Q(nombre__icontains=valor),     # Busca por nombre
                 "S": Q(servicio_Remitente__icontains=valor),  # Busca por servicio remitente
                 "P": Q(prueba__icontains=valor),     # Busca por prueba
-                "F": Q(fecha__icontains=valor),      # Busca por fecha (puedes ajustar el formato)
+                "F": parse_fecha(valor),      # Busca por fecha (puedes ajustar el formato)
                 "E": Q(Edad=valor) if valor.isdigit() else None,  # Busca por edad exacta (solo números)
                 "T": Q(turno__icontains=valor)
             }
             filtro = filtros.get(prefijo.upper())
-
             if filtro is None:
                 return {"error": "Prefijo no reconocido. Usa N, S, P, F o E."}
             pacientes = await self.paciente_agente_repo.get_pacientes_filtered(filtro)
 
             if not pacientes:
+                print(pacientes,"pacientes")
+
                 return []
+            print(pacientes,"pacientes fuera")
+            
             return self.order_pacientes(pacientes)
         except Exception as e:
             return {"error": str(e)}
