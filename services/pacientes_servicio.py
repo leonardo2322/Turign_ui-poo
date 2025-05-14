@@ -67,7 +67,7 @@ class Paciente_agente_servicio:
                 paciente.Edad,
                 paciente.sexo,
                 paciente.servicio_Remitente,
-                ",".join(pacientes[1].get(str(paciente.id), [])),
+                ", ".join(pacientes[1].get(str(paciente.id), [])),
                 paciente.resultado,
                 paciente.turno
             ) for paciente in pacientes[0]
@@ -127,7 +127,7 @@ class Paciente_agente_servicio:
         data = self.order_pacientes_pruebas(results)
         return data
     
-    async def pacientes_servicio(self, servicio=None):
+    async def pacientes_servicio(self, servicio=None,fecha=None):
         pruebas_count = await self.paciente_agente_repo.get_pacientes_serivicio(servicio=servicio)
         dict_pruebas = [dict(item) for item in pruebas_count]
         conteo_dict = {}

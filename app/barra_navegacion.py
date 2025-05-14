@@ -139,9 +139,10 @@ class Nav_Bar(Column):
     async def cards_servicio(self,e):
         tarjetas = []
         turno = e.control.data #"Día"
-        self.turno_name.value = f"Turno: {e.control.data} Fecha "
+        fecha_filtro = self.busqueda.value.strip()
+        self.turno_name.value = f"Turno: {turno} Fecha: {fecha_filtro if fecha_filtro else 'Actual'}"
         async def wrapper():
-            pruebas_count = await self.agent_paciente.pacientes_servicio()
+            pruebas_count = await self.agent_paciente.pacientes_servicio(fecha=fecha_filtro or None)
             result_dia = {
                         prueba: {
                             "servicios": [s for s in detalles["servicios"] if s["turno"] == turno],
