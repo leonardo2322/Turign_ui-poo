@@ -58,11 +58,8 @@ class Paciente_agente_servicio:
             return paciente if paciente else {"error": "No se pudo crear el paciente."}
         except Exception as e:
             return {"error": str(e)}
-
-    def order_pacientes(self, pacientes):
-        
-        
-        return [
+    def order_pacientes_pruebas(self,pacientes):
+        data = [
             (
                 paciente.id,
                 paciente.fecha.strftime("%d-%m-%Y"),
@@ -70,35 +67,23 @@ class Paciente_agente_servicio:
                 paciente.Edad,
                 paciente.sexo,
                 paciente.servicio_Remitente,
-                paciente.pruebas,
+                ",".join(pacientes[1].get(str(paciente.id), [])),
                 paciente.resultado,
                 paciente.turno
-            ) for paciente in pacientes
+            ) for paciente in pacientes[0]
+            
         ]
+        return data
+
     
     async def get_pacientes(self, page=1, page_size=10):
         try:
             offset = (page - 1) * page_size  # Calcula el inicio de la paginación
             pacientes = await self.paciente_agente_repo.get_all_pacientes(limit=page_size, offset=offset)
-            datos_organizados = []
-            for paciente in pacientes:
-                    pruebas = [prueba.nombre async for prueba in pacientes.pruebas]
-                    pruebas_str = ", ".join(pruebas)
-                    tupla_paciente = (
-                        paciente.id,
-                        paciente.fecha.strftime("%d-%m-%Y") if hasattr(paciente, "fecha") else "Sin fecha",
-                        paciente.nombre,
-                        paciente.edad,
-                        paciente.sexo,
-                        paciente.servicio,
-                        pruebas_str,
-                        paciente.estatus,
-                        paciente.turno,
-                    )
-                    datos_organizados.append(tupla_paciente)  
+           
             if not pacientes:
                 return []
-            return self.order_pacientes(pacientes)
+            return self.order_pacientes_pruebas(pacientes)
         except Exception as e:
             return {"error": str(e)}
 
@@ -127,12 +112,10 @@ class Paciente_agente_servicio:
             pacientes = await self.paciente_agente_repo.get_pacientes_filtered(filtro)
 
             if not pacientes:
-                print(pacientes,"pacientes")
 
                 return []
-            print(pacientes,"pacientes fuera")
-            
-            return self.order_pacientes(pacientes)
+
+            return self.order_pacientes_pruebas(pacientes)
         except Exception as e:
             return {"error": str(e)}
 
@@ -141,7 +124,7 @@ class Paciente_agente_servicio:
 
     async def all_pacientes(self):
         results = await self.paciente_agente_repo.get_all_pacientes()
-        data = self.order_pacientes(results)
+        data = self.order_pacientes_pruebas(results)
         return data
     
     async def pacientes_servicio(self, servicio=None):

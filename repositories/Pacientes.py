@@ -41,12 +41,12 @@ class Paciente_agente_repo:
     
     async def get_all_pacientes(self, limit=10, offset=0):
         pacientes = await Paciente.all().offset(offset).limit(limit).prefetch_related("pruebas")
+        pruebas_dict = {}
+
         for paciente in pacientes:
-            print(f"Paciente: {paciente.nombre} - ID: {paciente.id}")
-            pruebas = await paciente.pruebas.all()  # Esto es necesario para cargar las pruebas asociadas
-            for prueba in pruebas:
-                print(f"  Prueba: {prueba.nombre}")
-        return pacientes
+            pruebas = await paciente.pruebas.all()
+            pruebas_dict[str(paciente.id)] = [prueba.nombre for prueba in pruebas]
+        return pacientes, pruebas_dict
 
     async def get_pacientes_serivicio(self, servicio):
         try:
@@ -81,7 +81,12 @@ class Paciente_agente_repo:
     async def get_pacientes_filtered(self, filtro):
         try:
             pacientes = await Paciente.filter(filtro).prefetch_related("pruebas")
-            return pacientes
+            pruebas_dict = {}
+        
+            for paciente in pacientes:
+                pruebas = await paciente.pruebas.all()
+                pruebas_dict[str(paciente.id)] = [prueba.nombre for prueba in pruebas]
+            return pacientes,pruebas_dict
         except DoesNotExist:
             return None
         except Exception as e:

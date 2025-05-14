@@ -1,9 +1,8 @@
 from flet import Text,Column, TextField,NavigationRail,NavigationRailLabelType,NavigationRailDestination,icons,Padding,Container,ButtonStyle,RoundedRectangleBorder,CrossAxisAlignment,MainAxisAlignment,Row, ElevatedButton,GridView,TextAlign,colors,FontWeight,Colors
 from config.variables import container_accion,head,turnos,head_prueba
-from utils.functions import dlg_callback #actualizar_turnos
 from services.logica_form import Inputs_data_paciente,Paciente_agente_servicio
 from services.forms.form_pruebas import Formulario_pruebas
-from utils.functions import Boton_P, DataTableManager,CustomCard
+from utils.functions import Boton_P, DataTableManager,CustomCard,dlg_callback
 from services.estadistica import analizar_datos_describe,bar_chart,lines_chart,pie_chart
 
 class Nav_Bar(Column):
@@ -240,8 +239,7 @@ class Nav_Bar(Column):
                 self.contedor_tabla.clean()
                 self.contedor_tabla.controls.append(Text(f"No se encontraron resultados {data}", color="red"))
             else:
-                
-                print(data)
+
                 tabla = self.data_Table.create_data_table("Pacientes", cabecera, data)
                 self.contedor_tabla.controls.clear()
                 self.contedor_tabla.controls.append(tabla)

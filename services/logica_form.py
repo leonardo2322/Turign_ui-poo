@@ -247,7 +247,7 @@ class Inputs_data_paciente:
             self.clean()
             return None
         self.content.update()
-        
+        self.pruebas.clear()
         return resultado
     
     def obtener_datos(self):
