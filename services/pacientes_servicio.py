@@ -128,16 +128,19 @@ class Paciente_agente_servicio:
         return data
     
     async def pacientes_servicio(self, servicio=None,fecha=None):
-        pruebas_count = await self.paciente_agente_repo.get_pacientes_serivicio(servicio=servicio)
+        pruebas_count = await self.paciente_agente_repo.get_pacientes_serivicio(servicio=servicio, fecha=fecha)
         dict_pruebas = [dict(item) for item in pruebas_count]
         conteo_dict = {}
 
         for item in dict_pruebas:
+            if fecha and item["fecha"] != fecha:
+                continue  # Filtrar por fecha si fue proporcionada
+
             servicio = item["servicio_Remitente"]
             prueba = item["prueba"]
             total = item["total"]
             turno_creado = item['turno']
-            # Ajustar el total según el tipo de prueba
+
             if prueba == "Hematologia":
                 total *= 5
             elif prueba == "Orina":
@@ -145,22 +148,18 @@ class Paciente_agente_servicio:
             elif prueba == "Heces":
                 total *= 2
 
-            # Si la prueba no está en el diccionario, la inicializamos con lista de servicios y total general
             if prueba not in conteo_dict:
                 conteo_dict[prueba] = {"servicios": [], "total_general": 0}
 
-            # Buscar si el servicio ya existe en la lista de servicios
             servicio_existente = next((s for s in conteo_dict[prueba]["servicios"] if s["servicio"] == servicio), None)
 
             if servicio_existente:
-                # Si el servicio ya existe, sumamos el total
                 servicio_existente["total"] += int(total)
             else:
-                # Si el servicio no existe, lo agregamos a la lista
                 conteo_dict[prueba]["servicios"].append({"servicio": servicio, "total": total, "turno": turno_creado})
 
-            # Sumar al total general de la prueba
             conteo_dict[prueba]["total_general"] += int(total)
+
         return conteo_dict
     
     async def delete_prueba(self, id):

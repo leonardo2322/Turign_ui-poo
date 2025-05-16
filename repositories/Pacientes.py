@@ -48,13 +48,17 @@ class Paciente_agente_repo:
             pruebas_dict[str(paciente.id)] = [prueba.nombre for prueba in pruebas]
         return pacientes, pruebas_dict
 
-    async def get_pacientes_serivicio(self, servicio):
+    async def get_pacientes_serivicio(self, servicio, fecha=None):
         try:
             consulta = Paciente.all().prefetch_related("pruebas")
 
             # Filtrar por servicio si se proporciona
             if servicio:
                 consulta = consulta.filter(servicio_Remitente=servicio)
+
+            # Filtrar por fecha si se proporciona
+            if fecha:
+                consulta = consulta.filter(fecha=fecha)
 
             pacientes = await consulta
             resultado = []
@@ -77,7 +81,8 @@ class Paciente_agente_repo:
 
         except Exception as e:
             return {"error": str(e)}
-    
+
+        
     async def get_pacientes_filtered(self, filtro):
         try:
             pacientes = await Paciente.filter(filtro).prefetch_related("pruebas")

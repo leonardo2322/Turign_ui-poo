@@ -90,7 +90,7 @@ class Inputs_data_paciente:
     
     async def manejador(self,e):
         """Manejador para el evento de cambio pantalla en el form"""
-        
+        print(self.prueba._Control__page,"manejador")
         try:
             
             botones = Row(controls=[self.btn_next,self.btn_all,self.boton_borrar,self.fin_seleccion])
@@ -103,17 +103,27 @@ class Inputs_data_paciente:
                 texto_error = Text(value=datos.get("error"),color="red",size=18)
                 self.content.controls.append(texto_error)
                 self.content.update()
+                print("en error")
                 return None
             else:
                 self.content.controls.clear()
                 self.btn_next.text = "Elegir"
                 self.btn_next.icon = icons.CHECK
-                self.btn_next.on_click = self.guardar_prueba
+                self.btn_next.on_click = self.guardar_prueba  # <- Este debe ir antes de agregar el botón
                 texto = Text(value=f"Introdusca las pruebas para el usuario {datos.get("Nombre")}")
-                self.content.controls.extend([self.subtitle,texto,self.prueba])
-                self.prueba.options = await self.pruebas_disponibles()
                 
-                self.content.controls.extend([botones,self.listado_pruebas])
+                self.prueba.options = await self.pruebas_disponibles()  # Asigna antes de agregar a la UI
+
+                # Arma la lista completa de controles
+                controles = [
+                    self.subtitle,
+                    texto,
+                    self.prueba,
+                    botones,
+                    self.listado_pruebas
+                ]
+                
+                self.content.controls.extend(controles)
                 self.content.update()
 
         except ValueError:
@@ -131,6 +141,9 @@ class Inputs_data_paciente:
         self.listado_pruebas.controls.clear()
         self.boton_borrar.disabled = False
         self.fin_seleccion.disabled = False
+        self.btn_next.on_click = self.manejador
+        self.prueba.disabled = False
+        self.btn_all.disabled = False
         controles_iniciales = Column(
             controls=[
                 self.subtitle,
@@ -200,6 +213,7 @@ class Inputs_data_paciente:
     
     def guardar_prueba(self,e):
         """Guarda la prueba seleccionada en el dropdown"""
+
         prueba =str(self.prueba.value)
         if prueba != "..." and prueba != None:
             self.subtitle.value = "Introduzca los datos del paciente"
@@ -209,17 +223,22 @@ class Inputs_data_paciente:
                 self.pruebas[prueba] = prueba_nombre
                 self.listado_pruebas.controls.append(Text(value=f"Prueba: { prueba_nombre }"))
             self.prueba.value = "..."
-            self.prueba.update()
-            self.listado_pruebas.update()
+            if self.prueba._Control__page:
+
+                self.prueba.update()
+            if self.listado_pruebas._Control__page:
+                self.listado_pruebas.update()
 
             return None
         else:
             self.prueba.value = "..."
             self.subtitle.value = "Debes Elegir una prueba"
             self.subtitle.color = "red"
+            if self.prueba._Control__page:
 
-            self.prueba.update()
-            self.listado_pruebas.update()
+                self.prueba.update()
+            if self.listado_pruebas._Control__page:
+                self.listado_pruebas.update()
 
 
             return None

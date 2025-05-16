@@ -142,28 +142,28 @@ class Nav_Bar(Column):
         fecha_filtro = self.busqueda.value.strip()
         self.turno_name.value = f"Turno: {turno} Fecha: {fecha_filtro if fecha_filtro else 'Actual'}"
         async def wrapper():
+        # Pasar la fecha si existe
             pruebas_count = await self.agent_paciente.pacientes_servicio(fecha=fecha_filtro or None)
-            result_dia = {
-                        prueba: {
-                            "servicios": [s for s in detalles["servicios"] if s["turno"] == turno],
-                            "total_general": sum(s["total"] for s in detalles["servicios"] if s["turno"] == turno)
-                        }
-                        for prueba, detalles in pruebas_count.items()
-                        if any(s["turno"] == turno for s in detalles["servicios"])
-                    }
-            for prueba, datos in result_dia.items():
-                servicios = datos["servicios"]  # Extraemos la lista de servicios
-                total_general = datos["total_general"]  # Extraemos el total acumulado
 
+            result_dia = {
+                prueba: {
+                    "servicios": [s for s in detalles["servicios"] if s["turno"] == turno],
+                    "total_general": sum(s["total"] for s in detalles["servicios"] if s["turno"] == turno)
+                }
+                for prueba, detalles in pruebas_count.items()
+                if any(s["turno"] == turno for s in detalles["servicios"])
+            }
+
+            for prueba, datos in result_dia.items():
+                servicios = datos["servicios"]
+                total_general = datos["total_general"]
                 contenido_servicios = "\n".join([f"{s['servicio']}: {s['total']}" for s in servicios])
                 contenido = f"{contenido_servicios}\n\nTotal: {total_general}"
-
                 tarjeta = CustomCard(title=prueba, content=contenido)
-
                 tarjetas.append(tarjeta)
+
         await wrapper()
         self.grid.controls.clear()
-        
         self.grid.controls.extend(tarjetas)
         self.page.update()
     async def creacion_pruebas(self,e):
