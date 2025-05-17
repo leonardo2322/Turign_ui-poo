@@ -1,6 +1,7 @@
 from model.models import Paciente,Prueba
 from tortoise.exceptions import DoesNotExist
-from tortoise.functions import Count
+from collections import Counter
+from pprint import pprint
 
 class Paciente_agente_repo:
     async def get_all_pruebas(self):
@@ -52,29 +53,40 @@ class Paciente_agente_repo:
         try:
             consulta = Paciente.all().prefetch_related("pruebas")
 
-            # Filtrar por servicio si se proporciona
+            # 👇 Filtrar por servicio si se proporciona
             if servicio:
                 consulta = consulta.filter(servicio_Remitente=servicio)
 
-            # Filtrar por fecha si se proporciona
+            # 👇 Filtrar por fecha si se proporciona como Q()
             if fecha:
-                consulta = consulta.filter(fecha=fecha)
+                consulta = consulta.filter(fecha)
 
             pacientes = await consulta
             resultado = []
             for paciente in pacientes:
                 for prueba in paciente.pruebas:
                     resultado.append({
+                        "fecha": paciente.fecha,
                         "prueba": prueba.nombre,
                         "servicio_Remitente": paciente.servicio_Remitente,
                         "turno": paciente.turno,
                     })
+            pprint(resultado)
+            
+            # 👇 Contar el total por combinación única
+            conteo = Counter(
+                (item["fecha"], item["prueba"], item["servicio_Remitente"], item["turno"])
+                for item in resultado
+            )
 
-            # Contar el total por combinación
-            from collections import Counter
-            conteo = Counter((item["prueba"], item["servicio_Remitente"], item["turno"]) for item in resultado)
             resultado_final = [
-                {"prueba": k[0], "servicio_Remitente": k[1], "turno": k[2], "total": v}
+                {
+                    "fecha": k[0],
+                    "prueba": k[1],
+                    "servicio_Remitente": k[2],
+                    "turno": k[3],
+                    "total": v
+                }
                 for k, v in conteo.items()
             ]
             return resultado_final

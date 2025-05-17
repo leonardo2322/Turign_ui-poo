@@ -57,7 +57,7 @@ class Nav_Bar(Column):
                 self._crear_boton(text="Dia",on_click=self.cards_servicio,data="Día",width=170,color="white"),
                 self._crear_boton(text="Noche",on_click=self.cards_servicio, data="Noche",width=170,color="white"),
                 self.busqueda,
-                self._crear_boton(text="Buscar",on_click=self.cards_servicio,icon=icons.SEARCH,width=170,color="blue"),
+                self._crear_boton(text="Buscar",data="Día",on_click=self.cards_servicio,icon=icons.SEARCH,width=170,color="blue"),
 
             ]
             self.window_selected([container_accion(botones=botones),turnos(self.turno_name,[]),self.grid,Container(width=200,height=80)])
@@ -140,11 +140,12 @@ class Nav_Bar(Column):
         tarjetas = []
         turno = e.control.data #"Día"
         fecha_filtro = self.busqueda.value.strip()
-        self.turno_name.value = f"Turno: {turno} Fecha: {fecha_filtro if fecha_filtro else 'Actual'}"
+        self.turno_name.value = f"Turno: {turno} Fecha: {fecha_filtro if fecha_filtro else 'Hoy'}"
+
         async def wrapper():
         # Pasar la fecha si existe
             pruebas_count = await self.agent_paciente.pacientes_servicio(fecha=fecha_filtro or None)
-
+            # print(pruebas_count)
             result_dia = {
                 prueba: {
                     "servicios": [s for s in detalles["servicios"] if s["turno"] == turno],
@@ -153,7 +154,13 @@ class Nav_Bar(Column):
                 for prueba, detalles in pruebas_count.items()
                 if any(s["turno"] == turno for s in detalles["servicios"])
             }
-
+            if not result_dia:
+                tarjeta = CustomCard(
+                        title="Sin resultados",
+                        content="No hay datos para la fecha y turno seleccionados."
+                    )
+                tarjetas.append(tarjeta)
+                return
             for prueba, datos in result_dia.items():
                 servicios = datos["servicios"]
                 total_general = datos["total_general"]

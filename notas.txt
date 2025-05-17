@@ -17,3 +17,214 @@ mi_aplicacion/
 │
 └── database.py              # Configuración de la base de datos y SQLAlchemy
 
+
+2025-05-13
+
+
+
+cambios sugeridos 
+
+
+class Nav_Bar(Column):
+    def __init__(self, destinations, bg, page, main, dlg, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.destinations = destinations or []
+        self.page = page
+        self.bg = bg
+        self.main = main    
+        self.show_dlg = dlg
+
+        self.agent_paciente = Paciente_agente_servicio()
+        self.form_pacientes = Inputs_data_paciente(page, self.cambiar_estado)
+        self.form_pruebas = Formulario_pruebas(page)
+
+        self.busqueda = TextField(hint_text="Buscar....", width=270)
+        self.turno_name = Text("", text_align=TextAlign.CENTER, size=18,
+                               weight=FontWeight.BOLD, font_family="Montserrat", color=colors.AMBER_300)
+
+        self.contedor_tabla = Column(alignment=MainAxisAlignment.CENTER,
+                                     horizontal_alignment=CrossAxisAlignment.CENTER, scroll='always')
+        self.grid = GridView(expand=1, runs_count=4, spacing=15, run_spacing=10)
+        self.data_Table = DataTableManager(main, listar=self.ejecucion_listar, dlg=dlg, page=page, listar_prueba=self.listado_pruebas)
+
+    def build(self):
+        return NavigationRail(
+            selected_index=0,
+            label_type=NavigationRailLabelType.ALL,
+            min_width=100,
+            min_extended_width=400,
+            group_alignment=0.0,
+            bgcolor=self.bg,
+            destinations=[
+                NavigationRailDestination(
+                    icon=item.get("icon", icons.HELP_OUTLINE),
+                    selected_icon=item.get("selected_icon", icons.HELP),
+                    label=item.get("label", "--"),
+                ) for item in self.destinations
+            ],
+            height=780,
+            width=100,
+            on_change=self.change_window
+        )
+
+    def change_window(self, e):
+        self.selected_index = e.control.selected_index
+        self.busqueda.value = ""
+        self.limpiar_contenedores()
+
+        if self.selected_index == 0:
+            self.set_vista(self._get_botones_inicio(), [turnos(self.turno_name, []), self.grid, Container(width=200, height=80)])
+        elif self.selected_index == 1:
+            self.set_vista(self._get_botones_registro(), [self.contedor_tabla, Container(width=10, height=200)])
+        elif self.selected_index == 2:
+            self.set_vista(self._get_botones_graficos(), [self.contedor_tabla])
+        elif self.selected_index == 3:
+            self.page.views.pop()
+            self.page.go("/")
+
+    def limpiar_contenedores(self):
+        self.contedor_tabla.controls.clear()
+        self.grid.controls.clear()
+
+    def set_vista(self, botones: list, contenido: list):
+        self.window_selected([container_accion(botones=botones)] + contenido)
+
+    def cambiar_estado(self, e):
+        if self.page.dlg.boton_aceptar.disabled:
+            self.page.dlg.boton_aceptar.disabled = False
+            self.page.dlg.boton_aceptar.update()
+            self.page.update()
+
+    def _crear_boton(self, text, icon=None, data=None, on_click=None, bgcolor=None, width=None, color=None):
+        return Boton_P(
+            text=text,
+            icon=icon,
+            data=data,
+            color=color,
+            bgcolor=bgcolor,
+            on_click=on_click,
+            width=width,
+            style=ButtonStyle(
+                shape=RoundedRectangleBorder(radius=10),
+                shadow_color="black",
+                padding=Padding(20, 10, 20, 10)
+            )
+        )
+
+    def _get_botones_inicio(self):
+        return [
+            self._crear_boton("Dia", on_click=self.cards_servicio, data="Día", width=170, color="white"),
+            self._crear_boton("Noche", on_click=self.cards_servicio, data="Noche", width=170, color="white"),
+            self.busqueda,
+            self._crear_boton("Buscar", on_click=self.cards_servicio, icon=icons.SEARCH, width=170, color="blue"),
+        ]
+
+    def _get_botones_registro(self):
+        return [
+            self._crear_boton("Registrar Paciente", on_click=lambda e: dlg_callback(self, e, self.page,
+                title="Registrar Pacientes", content=self.form_pacientes.build(), icon=icons.SAVE, color_icon="white",
+                action_def=self.ejecucion, win_height=650, disabled_btn=True), width=190, icon=icons.CHECK_CIRCLE_OUTLINE),
+            self._crear_boton("agg prueba", on_click=lambda e: dlg_callback(self, e, self.page,
+                title="Registrar Pruebas", content=self.form_pruebas.build(), icon=icons.SAVE, color_icon="white",
+                action_def=self.creacion_pruebas, win_height=200), width=190, icon=icons.CHECK_CIRCLE_OUTLINE),
+            self._crear_boton("Listar pruebas", on_click=self.listado_pruebas, icon=icons.LIST_ALT, width=200),
+            self._crear_boton("Listado pacientes", icon=icons.LIST_ALT, on_click=self.ejecucion_listar, width=200),
+            self.busqueda,
+            self._crear_boton("Buscar", icon=icons.SEARCH, on_click=self.buscar_paciente, width=140),
+        ]
+
+    def _get_botones_graficos(self):
+        return [
+            self._crear_boton("Mostrar gráficos", width=190, on_click=self.cargar_datos_Analizados)
+        ]
+
+    async def cards_servicio(self, e):
+        tarjetas = []
+        turno = e.control.data
+        fecha_filtro = self.busqueda.value.strip()
+        self.turno_name.value = f"Turno: {turno} Fecha: {fecha_filtro if fecha_filtro else 'Actual'}"
+
+        pruebas_count = await self.agent_paciente.pacientes_servicio(fecha=fecha_filtro or None)
+        result_dia = {
+            prueba: {
+                "servicios": [s for s in detalles["servicios"] if s["turno"] == turno],
+                "total_general": sum(s["total"] for s in detalles["servicios"] if s["turno"] == turno)
+            }
+            for prueba, detalles in pruebas_count.items()
+            if any(s["turno"] == turno for s in detalles["servicios"])
+        }
+
+        for prueba, datos in result_dia.items():
+            servicios = datos["servicios"]
+            total_general = datos["total_general"]
+            contenido_servicios = "\n".join([f"{s['servicio']}: {s['total']}" for s in servicios])
+            contenido = f"{contenido_servicios}\n\nTotal: {total_general}"
+            tarjetas.append(CustomCard(title=prueba, content=contenido))
+
+        self.grid.controls.clear()
+        self.grid.controls.extend(tarjetas)
+        self.page.update()
+
+    async def cargar_datos_Analizados(self, e):
+        pruebas = await self.agent_paciente.all_pacientes()
+        cabecera = ["Id", "fecha", "Nombre", "Edad", "Sexo", "Servicio Remitente", "Prueba", "Resultado", "Turno"]
+
+        df = analizar_datos_describe(data=pruebas, columnas=cabecera)
+        pacientes_x_fecha = df["fecha"].value_counts()
+        pacientes_servicio = df["Servicio Remitente"].value_counts()
+        barra_data = bar_chart(pacientes_x_fecha, "Pacientes asistidos en la fecha")
+        pie_data = pie_chart(pacientes_servicio)
+
+        self.contedor_tabla.controls.clear()
+        self.contedor_tabla.controls.extend([
+            barra_data,
+            Container(width=200, height=80),
+            Text("Servicio Remitente Gráfico de Torta", size=22, color=Colors.YELLOW_200),
+            Container(width=200, height=80),
+            pie_data,
+            Container(width=200, height=80)
+        ])
+        self.page.update()
+
+    async def ejecucion(self, e):
+        resultado = await self.form_pacientes.guardar_Campos()
+        if resultado:
+            await self.ejecucion_listar(e)
+            dlg_callback(self, e, self.page, title="Paciente agregado", content=Text("El paciente ha sido agregado exitosamente"), icon=icons.CHECK_CIRCLE, color_icon="green", win_height=200)
+        else:
+            dlg_callback(self, e, self.page, title="Error de ingreso", content=Text("Verifica los campos y vuelve a intentarlo. La edad debe ser numérica."), icon=icons.DANGEROUS, color_icon="red", win_height=200)
+        self.page.update()
+
+    async def buscar_paciente(self, e):
+        await self.ejecucion_listar(e, filtrado=self.busqueda.value)
+
+    async def creacion_pruebas(self, e):
+        resultado = await self.form_pruebas.guardar_datos()
+        if resultado and 'error' not in resultado:
+            self.form_pruebas.text_hide.value = "Prueba agregada correctamente"
+            self.form_pruebas.text_hide.color = "green"
+            await self.listado_pruebas(e)
+        else:
+            self.form_pruebas.text_hide.value = "Error al guardar. Verifica los datos o si la prueba ya existe."
+            self.form_pruebas.text_hide.color = "red"
+        self.page.update()
+
+    async def listado_pruebas(self, e):
+        self.contedor_tabla.controls.clear()
+        pruebas = await self.agent_paciente.listar_pruebas()
+        data = [(p.id, p.nombre, p.fecha.strftime("%d de %B de %Y - %I:%M %p")) for p in pruebas]
+
+        if data:
+            tabla = self.data_Table.create_data_table("Pruebas", head_prueba, data)
+            self.contedor_tabla.controls.append(tabla)
+        else:
+            self.contedor_tabla.controls.append(Text("No se encontraron resultados", color="red"))
+        self.page.update()
+
+    async def ejecucion_listar(self, e, filtrado: str = "todos", page: int = 1, page_size: int = 10):
+        await self.data_Table.listar_pacientes(e, filtrado, page, page_size)
+
+    def window_selected(self, accion: list):
+        self.main.controls.clear()
+        self.main.controls.extend(accion)
+        self.main.update()

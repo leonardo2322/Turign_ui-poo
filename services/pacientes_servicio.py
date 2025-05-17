@@ -1,14 +1,22 @@
 from repositories.Pacientes import Paciente_agente_repo
 from tortoise.expressions import Q
-from datetime import datetime,timedelta
+from datetime import datetime,timedelta,timezone
 #F:21-03-2025
+
 def parse_fecha(valor):
     try:
+        # Parseamos la fecha desde string (sin hora)
         fecha_obj = datetime.strptime(valor, "%d-%m-%Y")
-        fecha_siguiente = fecha_obj + timedelta(days=1)
-        return Q(fecha__gte=fecha_obj, fecha__lt=fecha_siguiente)
+        
+        # Aseguramos que sea zona UTC (importante para Tortoise con timestamps +00:00)
+        fecha_inicio = fecha_obj.replace(tzinfo=timezone.utc)
+        fecha_fin = (fecha_obj + timedelta(days=1)).replace(tzinfo=timezone.utc)
+
+        # Creamos el filtro desde las 00:00 hasta justo antes de la medianoche siguiente
+        return Q(fecha__gte=fecha_inicio, fecha__lt=fecha_fin)
     except ValueError:
         return None
+
 
 
 class Paciente_agente_servicio:
@@ -28,6 +36,7 @@ class Paciente_agente_servicio:
             return {"error": "Seleccione una prueba"}
 
         return None
+    
     async def listar_pruebas(self):
         try:
             pruebas = await self.paciente_agente_repo.get_all_pruebas()
@@ -36,6 +45,7 @@ class Paciente_agente_servicio:
             return pruebas
         except Exception as e:
             return {"error": str(e)}
+    
     async def create_prueba(self,nombre):
         if not isinstance(nombre,str) or not nombre.strip():
             return {"error":"el nombre no debe ser una cadena vacia introduzca un campo valido"}
@@ -44,6 +54,7 @@ class Paciente_agente_servicio:
             return resultado if resultado else {"error no se pudo crea el paciente."}
         except Exception as e:
             return {"error":str(e)}
+    
     async def create_paciente(self, nombre, Edad, sexo, servicio_Remitente, prueba, resultado):
         error = self.validar_paciente(nombre, Edad, sexo, servicio_Remitente, prueba)
         if error:
@@ -52,12 +63,12 @@ class Paciente_agente_servicio:
         # Convertir la prueba a una lista si es solo una
         if isinstance(prueba, str):
             prueba = [prueba]
-        print(prueba)
         try:
             paciente = await self.paciente_agente_repo.create_paciente(nombre=nombre,Edad=Edad,sexo=sexo, servicio_Remitente=servicio_Remitente,pruebas= prueba, resultado=resultado)
             return paciente if paciente else {"error": "No se pudo crear el paciente."}
         except Exception as e:
             return {"error": str(e)}
+    
     def order_pacientes_pruebas(self,pacientes):
         data = [
             (
@@ -127,20 +138,24 @@ class Paciente_agente_servicio:
         data = self.order_pacientes_pruebas(results)
         return data
     
-    async def pacientes_servicio(self, servicio=None,fecha=None):
-        pruebas_count = await self.paciente_agente_repo.get_pacientes_serivicio(servicio=servicio, fecha=fecha)
-        dict_pruebas = [dict(item) for item in pruebas_count]
+    async def pacientes_servicio(self, servicio=None, fecha=None):
+    # 👇 Usamos parse_fecha que devuelve un Q object para la búsqueda por día
+        fecha_format = parse_fecha(fecha) if fecha else None
+
+
+        pruebas_count = await self.paciente_agente_repo.get_pacientes_serivicio(
+            servicio=servicio, fecha=fecha_format
+        )
+
         conteo_dict = {}
 
-        for item in dict_pruebas:
-            if fecha and item["fecha"] != fecha:
-                continue  # Filtrar por fecha si fue proporcionada
-
+        for item in pruebas_count:
             servicio = item["servicio_Remitente"]
             prueba = item["prueba"]
             total = item["total"]
-            turno_creado = item['turno']
+            turno_creado = item["turno"]
 
+            # 👇 Multiplicadores según prueba
             if prueba == "Hematologia":
                 total *= 5
             elif prueba == "Orina":
@@ -151,15 +166,21 @@ class Paciente_agente_servicio:
             if prueba not in conteo_dict:
                 conteo_dict[prueba] = {"servicios": [], "total_general": 0}
 
-            servicio_existente = next((s for s in conteo_dict[prueba]["servicios"] if s["servicio"] == servicio), None)
+            servicio_existente = next(
+                (s for s in conteo_dict[prueba]["servicios"] if s["servicio"] == servicio),
+                None
+            )
 
             if servicio_existente:
                 servicio_existente["total"] += int(total)
             else:
-                conteo_dict[prueba]["servicios"].append({"servicio": servicio, "total": total, "turno": turno_creado})
+                conteo_dict[prueba]["servicios"].append({
+                    "servicio": servicio,
+                    "total": total,
+                    "turno": turno_creado
+                })
 
             conteo_dict[prueba]["total_general"] += int(total)
-
         return conteo_dict
     
     async def delete_prueba(self, id):
