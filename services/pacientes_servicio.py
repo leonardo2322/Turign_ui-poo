@@ -113,7 +113,6 @@ class Paciente_agente_servicio:
             
         ]
         return data
-
     
     async def get_pacientes(self, page=1, page_size=10):
         try:
@@ -166,6 +165,8 @@ class Paciente_agente_servicio:
         data = self.order_pacientes_pruebas(results)
         return data
     
+    async def all_for_export(self):
+        return await self.paciente_agente_repo.all_pacients()
     async def pacientes_servicio(self, servicio=None, fecha=None):
     # 👇 Usamos parse_fecha que devuelve un Q object para la búsqueda por día
         fecha_format = parse_fecha(fecha) if fecha else None
@@ -220,6 +221,7 @@ class Paciente_agente_servicio:
                 return {"error": "La prueba no existe."}
         except Exception as e:
             return {"error": str(e)}
+    
     async def actualizar_paciente_resultado(self,id,resultado):
         try:
             print(resultado,"en servicio")
@@ -229,6 +231,7 @@ class Paciente_agente_servicio:
             return False
         except Exception as e:
             return   {"error": str(e)}
+    
     async def delete_paciente(self, id):
         try:
             resultado = await self.paciente_agente_repo.delete_paciente(id=id)

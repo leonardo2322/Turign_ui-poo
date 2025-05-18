@@ -1,10 +1,10 @@
-from flet import Text,Column, TextField,NavigationRail,NavigationRailLabelType,NavigationRailDestination,icons,Padding,Container,ButtonStyle,RoundedRectangleBorder,CrossAxisAlignment,MainAxisAlignment,Row, ElevatedButton,GridView,TextAlign,colors,FontWeight,Colors
+from flet import Text,Column, TextField,NavigationRail,NavigationRailLabelType,NavigationRailDestination,icons,Padding,Container,ButtonStyle,RoundedRectangleBorder,CrossAxisAlignment,MainAxisAlignment,Row, ElevatedButton,GridView,TextAlign,colors,FontWeight,Colors,SnackBar,FilePickerResultEvent, FilePicker
 from config.variables import container_accion,head,turnos,head_prueba
 from services.logica_form import Inputs_data_paciente,Paciente_agente_servicio
 from services.forms.form_pruebas import Formulario_pruebas
 from utils.functions import Boton_P, DataTableManager,CustomCard,dlg_callback
 from services.estadistica import analizar_datos_describe,bar_chart,lines_chart,pie_chart
-
+import pandas as pd
 class Nav_Bar(Column):
     def __init__(self,destinations,bg,page,main,dlg,*args,**kwargs):
         super().__init__(*args,**kwargs)
@@ -23,7 +23,7 @@ class Nav_Bar(Column):
         self.form_pacientes = Inputs_data_paciente(page,self.cambiar_estado)
         self.form_pruebas = Formulario_pruebas(page)
         self.agent_paciente = Paciente_agente_servicio()
-        
+        self.configurar_file_picker_exportacion()
     def build(self):
         return NavigationRail(
             selected_index=0,
@@ -89,9 +89,11 @@ class Nav_Bar(Column):
             self.contedor_tabla.controls.clear()
 
             botones = [
-                self._crear_boton(text="mostrar graficos",width=190,on_click = self.cargar_datos_Analizados)
+                self._crear_boton(text="mostrar graficos",width=190,on_click = self.cargar_datos_Analizados),
+                self._crear_boton(text="Exportar data excel", width=190,icon=icons.SAVE, on_click=self.exportar_excel)
             ]
             self.window_selected([container_accion(botones=botones),self.contedor_tabla])
+        
         elif self.selected_index == 3:
             self.page.views.pop()
             
@@ -277,3 +279,48 @@ class Nav_Bar(Column):
             self.contedor_tabla.controls.append(Text("Ocurrió un error al listar los datos", color="red"))
             self.main.update()
             return {"error": str(e)}
+    
+    def configurar_file_picker_exportacion(self):
+    # Crear el FilePicker una sola vez
+        self.file_picker = FilePicker(on_result=self.guardar_excel)
+        self.page.overlay.append(self.file_picker)
+
+    async def exportar_excel(self, e):
+        async def wrapper():
+            try:
+                # Obtener todos los datos
+                pacientes = await self.agent_paciente.all_for_export()
+                if not pacientes:
+                    self.page.snack_bar = SnackBar(Text("No hay datos para exportar"), open=True)
+                    self.page.update()
+                    return
+
+                # Convertir los objetos a diccionarios ignorando los atributos internos
+                data = [{k: v for k, v in p.__dict__.items() if not k.startswith("_")} for p in pacientes]
+                self.df_exportacion = pd.DataFrame(data)
+
+                # Eliminar zona horaria de columnas datetime si existen
+                for col in self.df_exportacion.select_dtypes(include=["datetimetz"]).columns:
+                    self.df_exportacion[col] = self.df_exportacion[col].dt.tz_localize(None)
+
+                # Abrir el diálogo de guardar archivo
+                self.file_picker.save_file(dialog_title="Guardar como Excel", file_name="pacientes.xlsx")
+
+            except Exception as ex:
+                print("Error exportando:", ex)
+                self.page.snack_bar = SnackBar(Text(f"Error: {ex}"), open=True)
+                self.page.update()
+        await wrapper()
+    def guardar_excel(self, e: FilePickerResultEvent):
+        try:
+            if e.path and hasattr(self, "df_exportacion"):
+                self.df_exportacion.to_excel(e.path, index=False)
+                self.page.snack_bar = SnackBar(Text("Exportado correctamente"), open=True)
+                self.page.update()
+            else:
+                self.page.snack_bar = SnackBar(Text("Exportación cancelada"), open=True)
+                self.page.update()
+        except Exception as ex:
+            print("Error guardando el archivo:", ex)
+            self.page.snack_bar = SnackBar(Text(f"Error guardando: {ex}"), open=True)
+            self.page.update()

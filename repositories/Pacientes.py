@@ -41,6 +41,7 @@ class Paciente_agente_repo:
     
     async def get_total_pruebas(self):
         return await Prueba.all().values_list("nombre", flat=True)
+    
     async def get_all_pacientes(self, limit=10, offset=0):
         pacientes = await Paciente.all().order_by("id").offset(offset).limit(limit).prefetch_related("pruebas")
         pruebas_dict = {}
@@ -49,6 +50,9 @@ class Paciente_agente_repo:
             pruebas = await paciente.pruebas.all()
             pruebas_dict[str(paciente.id)] = [prueba.nombre for prueba in pruebas]
         return pacientes, pruebas_dict
+
+    async def all_pacients(self):
+        return await Paciente.all()
 
     async def get_pacientes_serivicio(self, servicio, fecha=None):
         try:
@@ -72,7 +76,6 @@ class Paciente_agente_repo:
                         "servicio_Remitente": paciente.servicio_Remitente,
                         "turno": paciente.turno,
                     })
-            pprint(resultado)
             
             # 👇 Contar el total por combinación única
             conteo = Counter(
@@ -109,6 +112,7 @@ class Paciente_agente_repo:
             return None
         except Exception as e:
             return {"error": str(e)}
+    
     async def update_pacient_result(self,id, resultado):
         try:
             result = await Paciente.get_or_none(id=id)
@@ -131,6 +135,10 @@ class Paciente_agente_repo:
             return {"success": "Paciente eliminado correctamente."}
         except Exception as e:
             return {"error": f"Error al eliminar paciente: {str(e)}"}
+    
+    async def delete_all_pacientes(self):
+        pass
+
     async def delete_prueba(self, id):
         try:
             prueba = await Prueba.get_or_none(id=id)
