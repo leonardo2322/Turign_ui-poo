@@ -1,7 +1,6 @@
 from model.models import Paciente,Prueba
 from tortoise.exceptions import DoesNotExist
 from collections import Counter
-from pprint import pprint
 
 class Paciente_agente_repo:
     async def get_all_pruebas(self):
@@ -43,7 +42,7 @@ class Paciente_agente_repo:
     async def get_total_pruebas(self):
         return await Prueba.all().values_list("nombre", flat=True)
     async def get_all_pacientes(self, limit=10, offset=0):
-        pacientes = await Paciente.all().offset(offset).limit(limit).prefetch_related("pruebas")
+        pacientes = await Paciente.all().order_by("id").offset(offset).limit(limit).prefetch_related("pruebas")
         pruebas_dict = {}
 
         for paciente in pacientes:
@@ -110,6 +109,18 @@ class Paciente_agente_repo:
             return None
         except Exception as e:
             return {"error": str(e)}
+    async def update_pacient_result(self,id, resultado):
+        try:
+            result = await Paciente.get_or_none(id=id)
+            if not result:
+                return {"error": "El paciente no existe."}
+            result.resultado = resultado
+            
+            await result.save()
+            print(result.resultado, "en resultado",resultado)
+            return {"success": "Resultado actualizado correctamente."}
+        except Exception as e:
+            return {"error": f"Error al actualizar resultado  paciente: {str(e)}"}
 
     async def delete_paciente(self, id):
         try:

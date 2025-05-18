@@ -220,7 +220,15 @@ class Paciente_agente_servicio:
                 return {"error": "La prueba no existe."}
         except Exception as e:
             return {"error": str(e)}
-        
+    async def actualizar_paciente_resultado(self,id,resultado):
+        try:
+            print(resultado,"en servicio")
+            result = await self.paciente_agente_repo.update_pacient_result(id,resultado) 
+            if 'success' in result:
+                return True
+            return False
+        except Exception as e:
+            return   {"error": str(e)}
     async def delete_paciente(self, id):
         try:
             resultado = await self.paciente_agente_repo.delete_paciente(id=id)

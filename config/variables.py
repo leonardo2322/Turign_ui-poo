@@ -29,6 +29,7 @@ def turnos(title,data):
           content=Column(alignment=MainAxisAlignment.CENTER,horizontal_alignment=CrossAxisAlignment.CENTER,
                          controls=[title]+[item for item in data ])
     )
+
 def container_accion(h=100,botones=[]):
         container_acciones = Container(
             bgcolor=background_app,
@@ -43,6 +44,8 @@ def container_accion(h=100,botones=[]):
             ))
 
         return container_acciones
+
+
 
 # funcion para llamar a eliminar desde el boton a una funcion async
 

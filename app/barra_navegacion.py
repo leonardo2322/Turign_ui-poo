@@ -173,6 +173,7 @@ class Nav_Bar(Column):
         self.grid.controls.clear()
         self.grid.controls.extend(tarjetas)
         self.page.update()
+    
     async def creacion_pruebas(self,e):
         resultado = await self.form_pruebas.guardar_datos()
         print(resultado)

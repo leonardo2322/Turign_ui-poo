@@ -44,7 +44,7 @@ class Paciente(Model):
     )
     resultado = fields.CharField(
         max_length=120,
-        choices=[("Positivo", "Positivo"), ("Negativo", "Negativo"), ("Pendiente", "Pendiente"),("Reactivo","Reactivo"),("NO Reactivo","NO Reactivo")],
+        
         default="Pendiente"
     )
     turno = fields.CharField(max_length=10,null=True)

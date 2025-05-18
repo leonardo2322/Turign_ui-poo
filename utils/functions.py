@@ -1,8 +1,9 @@
 from utils.dialog import Dialog
-from flet import ElevatedButton,DataTable,border,BorderSide,DataColumn,colors,Text,Row,DataCell,IconButton,icons,DataRow,Column,Margin,Card,Container,BoxShadow,FontWeight,LinearGradient,alignment,Offset
+from flet import ElevatedButton,DataTable,border,BorderSide,DataColumn,colors,Text,Row,DataCell,IconButton,icons,DataRow,Column,Margin,Card,Container,BoxShadow,FontWeight,LinearGradient,alignment,Offset,TextAlign,TextField,MainAxisAlignment,CrossAxisAlignment
 # funcion para llamar al dialog y se abre
 from services.pacientes_servicio import Paciente_agente_servicio
-from tortoise.expressions import Q
+from pprint import pprint
+
 
 def dlg_callback(
           self,e,page,title,content,icon=None,color_icon=None,
@@ -44,6 +45,17 @@ class Boton_P(ElevatedButton):
         self.on_click = kwargs.get("on_click",None)     
         self.style = kwargs.get("style",None)
         self.data = kwargs.get("data",None)
+
+def texto(text):
+    return Text(
+        value=str(text),
+        size=18,
+        color="white",
+        font_family="Montserrat",
+        text_align=TextAlign.CENTER,
+        weight=FontWeight.BOLD
+    )
+
 class CustomCard(Card):
     def __init__(self, title: str, content: str, color: str = "#6b6ecc"):
         super().__init__()
@@ -79,6 +91,7 @@ class DataTableManager(Column):
         self.page = page
         self.head_table = None
         self.margin = Margin(left=10, top=10, right=10, bottom=20)
+
     def create_data_table(self, head_table, table_items, data=None):
         """
         Genera una tabla con los datos proporcionados.
@@ -134,7 +147,7 @@ class DataTableManager(Column):
                     ) for i, cell in enumerate(row)
                 ] + [
                     DataCell(Row(controls=[
-                        # IconButton(icon="create", on_click=lambda e, r=row: self.edit_row(r, e, clase)),
+                        IconButton(icon="create", icon_color="blue",data={"row":row,"row_id":row[0],"nombre":row[2]}, on_click=lambda e, r=row: self.edit_row(e, clase))if head_table == "Pacientes" else IconButton(visible=False),
                         IconButton(icon=icons.DELETE, icon_color="red", data={"row":row,"row_id":row[0],"nombre":row[2]if self.head_table =="Pacientes" else row[1]}, on_click=lambda e:self.permiso_eliminar(e, clase)),
                     ], spacing=12))
                 ]
@@ -146,8 +159,64 @@ class DataTableManager(Column):
 
     def edit_row(self,e, clase):
         """Método para editar una fila"""
-        print(f"Editando:  en la clase {clase}")
         # Aquí podrías abrir un modal o actualizar datos en la base
+        data = e.control.data
+        row = data.get("row")
+        row_id = data.get("row_id")
+        nombre = data.get("nombre")
+        sexo = row[4]
+        edad = row[3]
+        resultado = TextField(label="Resultado paciente", hint_text="Introduzca El resultado del paciente")
+
+        async def on_guardar_resultado(ev):
+            async def wrapper(ev):
+                await self.actualizar_paciente(ev, row_id, resultado.value, clase)
+            await wrapper(ev)
+            self.main.update()
+        datos = Column(
+            controls=[
+               Row(
+                   controls=[
+                        texto("ID:"),
+                texto(row_id),
+                texto("Nombre del Paciente:"),
+                texto(nombre),
+               
+                   ],
+                   alignment=MainAxisAlignment.CENTER
+               ),
+               Row(
+                   controls=[
+                        texto("Sexo:"),
+                texto("Masculino") if sexo == "M" else texto("Femenino"),
+                texto("Edad: "),
+                texto(edad)
+                   ],
+                   alignment=MainAxisAlignment.CENTER
+               ),
+
+                Row(
+                    controls=[
+                        resultado,
+
+                    ],
+                    alignment=MainAxisAlignment.CENTER
+                    )
+            ],
+            spacing=10,
+            alignment=MainAxisAlignment.CENTER,horizontal_alignment=CrossAxisAlignment.CENTER,
+            )
+        dlg_callback(self,e=e,page=self.page,content=datos,title="Formulario para cambio del resultado del paciente", icon=icons.NOTE_ADD,color_icon="blue", action_def=on_guardar_resultado,win_height=250)
+        
+        
+    async def actualizar_paciente(self,e,id,resultado,clase):
+        instancia = clase()
+        result = await instancia.actualizar_paciente_resultado(id,resultado)
+        if result:
+            dlg_callback(self,e=e,page=self.page,content=Text("El usuario ha sido actualizado exitosamente"),title=f"Usuario actualizado correctamente",icon=icons.CHECK,color_icon="green",win_height=200,icon_btn=icons.CHECK)
+        else:
+            dlg_callback(self,e=e,page=self.page,content=Text("ha ocurrido un error"),title=f"ha ocurrido un error",icon=icons.CHECK,color_icon="red",win_height=200,icon_btn=icons.WARNING)
+        await self.listar(e)
     def permiso_eliminar(self,e,clase):
         data = e.control.data
         row_id = data.get("row_id")
@@ -157,8 +226,6 @@ class DataTableManager(Column):
     def delete_row(self, row_id, clase,nombre):
         """Método para eliminar una fila"""
         # Aquí podrías ejecutar la lógica de eliminación de la base de d
-        
-        
         async def on_delete_click(e):
 
             instancia = clase()
