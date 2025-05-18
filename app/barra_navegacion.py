@@ -1,10 +1,13 @@
-from flet import Text,Column, TextField,NavigationRail,NavigationRailLabelType,NavigationRailDestination,icons,Padding,Container,ButtonStyle,RoundedRectangleBorder,CrossAxisAlignment,MainAxisAlignment,Row, ElevatedButton,GridView,TextAlign,colors,FontWeight,Colors,SnackBar,FilePickerResultEvent, FilePicker
+import pandas as pd
+import asyncio
+
+from flet import Text,Column, TextField,NavigationRail,NavigationRailLabelType,NavigationRailDestination,icons,Padding,Container,ButtonStyle,RoundedRectangleBorder,CrossAxisAlignment,MainAxisAlignment,Row, ElevatedButton,GridView,TextAlign,colors,FontWeight,Colors,SnackBar,FilePickerResultEvent, FilePicker, ProgressRing,alignment
 from config.variables import container_accion,head,turnos,head_prueba
 from services.logica_form import Inputs_data_paciente,Paciente_agente_servicio
 from services.forms.form_pruebas import Formulario_pruebas
 from utils.functions import Boton_P, DataTableManager,CustomCard,dlg_callback
 from services.estadistica import analizar_datos_describe,bar_chart,lines_chart,pie_chart
-import pandas as pd
+
 class Nav_Bar(Column):
     def __init__(self,destinations,bg,page,main,dlg,*args,**kwargs):
         super().__init__(*args,**kwargs)
@@ -287,30 +290,60 @@ class Nav_Bar(Column):
 
     async def exportar_excel(self, e):
         async def wrapper():
+            self.loading_overlay = Container(
+                    content=Column(
+                        controls=[
+                            ProgressRing(),
+                            Text("Exportando datos... Por favor espera", size=14)
+                        ],
+                        alignment="center",
+                        horizontal_alignment="center"
+                    ),
+                    alignment=alignment.center,
+                    expand=True,
+                    bgcolor="#00000030"  # fondo semitransparente opcional
+                )
+            self.page.overlay.append(self.loading_overlay)
+            self.page.update()
             try:
+                e.control.disabled = True
+                self.page.update()
+                
                 # Obtener todos los datos
                 pacientes = await self.agent_paciente.all_for_export()
                 if not pacientes:
                     self.page.snack_bar = SnackBar(Text("No hay datos para exportar"), open=True)
-                    self.page.update()
                     return
 
-                # Convertir los objetos a diccionarios ignorando los atributos internos
-                data = [{k: v for k, v in p.__dict__.items() if not k.startswith("_")} for p in pacientes]
-                self.df_exportacion = pd.DataFrame(data)
+                # Convertir a DataFrame desde __dict__, ignorando atributos internos directamente
+                data = [
+                    {k: v for k, v in p.__dict__.items() if not k.startswith("_")}
+                    for p in pacientes
+                ]
+                df = pd.DataFrame(data)
 
-                # Eliminar zona horaria de columnas datetime si existen
-                for col in self.df_exportacion.select_dtypes(include=["datetimetz"]).columns:
-                    self.df_exportacion[col] = self.df_exportacion[col].dt.tz_localize(None)
+                # Convertir columnas datetime con tz
+                for col in df.select_dtypes(include=["datetimetz"]).columns:
+                    df[col] = df[col].dt.tz_localize(None)
 
-                # Abrir el diálogo de guardar archivo
-                self.file_picker.save_file(dialog_title="Guardar como Excel", file_name="pacientes.xlsx")
+                # Guardar el DataFrame para el evento on_save
+                self.df_exportacion = df
 
+                # Lanzar el diálogo de guardar archivo
+                self.file_picker.save_file(
+                    dialog_title="Guardar como Excel", file_name="pacientes.xlsx"
+                )
             except Exception as ex:
                 print("Error exportando:", ex)
                 self.page.snack_bar = SnackBar(Text(f"Error: {ex}"), open=True)
                 self.page.update()
+            finally:
+        # Ocultar spinner y habilitar botón
+                self.page.overlay.remove(self.loading_overlay)
+                e.control.disabled = False
+                self.page.update()
         await wrapper()
+        
     def guardar_excel(self, e: FilePickerResultEvent):
         try:
             if e.path and hasattr(self, "df_exportacion"):
