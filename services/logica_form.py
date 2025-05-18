@@ -46,8 +46,9 @@ class Inputs_data_paciente:
         )
 
         # Botones
+        self.btn_back = ElevatedButton(text="volver",icon=icons.ARROW_BACK,on_click=self.volver)
         self.btn_next = ElevatedButton(text="Siguiente", icon=icons.ARROW_FORWARD, on_click=self.manejador)
-        self.btn_all = ElevatedButton(text="Todos", icon=icons.ALL_INBOX, on_click=self.btn_todos)
+        self.btn_all = ElevatedButton(text="Todas", icon=icons.ALL_INBOX, on_click=self.btn_todos)
         self.boton_borrar = ElevatedButton(text="Borrar", icon=icons.DELETE, on_click=self.borrar_de_la_lista)
         self.fin_seleccion = ElevatedButton(text="Fin selección", icon=icons.CHECK, on_click=self.terminar_seleccion)
 
@@ -76,6 +77,7 @@ class Inputs_data_paciente:
         self.seccion_pruebas = Column(controls=[
             self.prueba,
             self.botones_pruebas,
+            self.btn_back,
             self.listado_pruebas
         ], visible=False)
 
@@ -104,7 +106,11 @@ class Inputs_data_paciente:
         pruebas = await self.repo.listar_pruebas()
         self.id_to_nombre = {str(p.id): p.nombre for p in pruebas}
         return [dropdown.Option(str(p.id), p.nombre) for p in pruebas]
-
+    def volver(self,e):
+        self.seccion_datos.visible = True
+        self.seccion_pruebas.visible = False
+        self._reset_form()
+        self.content.update()
     async def manejador(self, e):
         datos = self.obtener_datos()
         if 'error' in datos:

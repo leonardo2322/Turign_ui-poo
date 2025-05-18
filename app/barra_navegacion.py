@@ -140,7 +140,7 @@ class Nav_Bar(Column):
         tarjetas = []
         turno = e.control.data #"Día"
         fecha_filtro = self.busqueda.value.strip()
-        self.turno_name.value = f"Turno: {turno} Fecha: {fecha_filtro if fecha_filtro else 'Hoy'}"
+        self.turno_name.value = f"Turno: {turno} Fecha: {fecha_filtro if fecha_filtro else 'Todos'}"
 
         async def wrapper():
         # Pasar la fecha si existe

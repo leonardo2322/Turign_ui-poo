@@ -40,6 +40,8 @@ class Paciente_agente_repo:
     async def get_total_pacientes(self):
         return await Paciente.all().count()  
     
+    async def get_total_pruebas(self):
+        return await Prueba.all().values_list("nombre", flat=True)
     async def get_all_pacientes(self, limit=10, offset=0):
         pacientes = await Paciente.all().offset(offset).limit(limit).prefetch_related("pruebas")
         pruebas_dict = {}

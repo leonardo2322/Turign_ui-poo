@@ -69,7 +69,35 @@ class Paciente_agente_servicio:
         except Exception as e:
             return {"error": str(e)}
     
-    def order_pacientes_pruebas(self,pacientes):
+    async def total_pruebas(self):
+        return await self.paciente_agente_repo.get_total_pruebas()
+    
+    def order_pacientes_pruebas(self,pacientes,all_pruebas=None):
+        if all_pruebas:
+            data = []
+            for paciente in pacientes[0]:
+                pruebas_paciente = pacientes[1].get(str(paciente.id), [])
+                
+                # Verificamos si tiene todas las pruebas
+                if set(pruebas_paciente) == set(all_pruebas):
+                    pruebas_str = "Todas"
+                else:
+                    pruebas_str = ", ".join(pruebas_paciente)
+
+                data.append((
+                    paciente.id,
+                    paciente.fecha.strftime("%d-%m-%Y"),
+                    paciente.nombre,
+                    paciente.Edad,
+                    paciente.sexo,
+                    paciente.servicio_Remitente,
+                    pruebas_str,
+                    paciente.resultado,
+                    paciente.turno
+                ))
+
+            return data
+        
         data = [
             (
                 paciente.id,
@@ -91,10 +119,10 @@ class Paciente_agente_servicio:
         try:
             offset = (page - 1) * page_size  # Calcula el inicio de la paginación
             pacientes = await self.paciente_agente_repo.get_all_pacientes(limit=page_size, offset=offset)
-           
+            all_pruebas = await self.total_pruebas()
             if not pacientes:
                 return []
-            return self.order_pacientes_pruebas(pacientes)
+            return self.order_pacientes_pruebas(pacientes,all_pruebas)
         except Exception as e:
             return {"error": str(e)}
 
@@ -125,8 +153,8 @@ class Paciente_agente_servicio:
             if not pacientes:
 
                 return []
-
-            return self.order_pacientes_pruebas(pacientes)
+            all_p = await self.total_pruebas() 
+            return self.order_pacientes_pruebas(pacientes,all_p)
         except Exception as e:
             return {"error": str(e)}
 
