@@ -1,32 +1,43 @@
 import pandas as pd
-import asyncio
-
 from flet import Text,Column, TextField,NavigationRail,NavigationRailLabelType,NavigationRailDestination,icons,Padding,Container,ButtonStyle,RoundedRectangleBorder,CrossAxisAlignment,MainAxisAlignment,Row, ElevatedButton,GridView,TextAlign,colors,FontWeight,Colors,SnackBar,FilePickerResultEvent, FilePicker, ProgressRing,alignment
 from config.variables import container_accion,head,turnos,head_prueba
 from services.logica_form import Inputs_data_paciente,Paciente_agente_servicio
 from services.forms.form_pruebas import Formulario_pruebas
-from utils.functions import Boton_P, DataTableManager,CustomCard,dlg_callback
+from utils.functions import Boton_P, DataTableManager,CustomCard,dlg_callback,overlay_progress
 from services.estadistica import analizar_datos_describe,bar_chart,lines_chart,pie_chart
 
 class Nav_Bar(Column):
     def __init__(self,destinations,bg,page,main,dlg,*args,**kwargs):
         super().__init__(*args,**kwargs)
         self.destinations = destinations if destinations else []
+        # principales 
         self.page = page
         self.bg = bg
-        self.main = main    
-        self.data_Table = DataTableManager(main,listar=self.ejecucion_listar,dlg=dlg,page=page,listar_prueba=self.listado_pruebas)
-        self.busqueda = TextField(hint_text="Buscar....",width=270)
-        self.contedor_tabla = Column(alignment=MainAxisAlignment.CENTER,horizontal_alignment=CrossAxisAlignment.CENTER,scroll='always')
-        self.grid = GridView(expand=1, runs_count=4, spacing=15, run_spacing=10)
-        self.turno_name = Text("",text_align=TextAlign.CENTER,size=18,weight=FontWeight.BOLD,font_family="Montserrat",color=colors.AMBER_300)
-        self.boton_anterior = None
-        self.boton_siguiente = None
+        self.main = main  
         self.show_dlg = dlg
+
+        #instanciaciones  
+        self.data_Table = DataTableManager(main,listar=self.ejecucion_listar,dlg=dlg,page=page,listar_prueba=self.listado_pruebas)
         self.form_pacientes = Inputs_data_paciente(page,self.cambiar_estado)
         self.form_pruebas = Formulario_pruebas(page)
         self.agent_paciente = Paciente_agente_servicio()
+
+        #inputs 
+        self.busqueda = TextField(hint_text="Buscar....",width=270)
+
+        #textos
+        self.turno_name = Text("",text_align=TextAlign.CENTER,size=18,weight=FontWeight.BOLD,font_family="Montserrat",color=colors.AMBER_300)
+
+        #botones
+        self.boton_anterior = None
+        self.boton_siguiente = None
+        # contenedores 
+        self.contedor_tabla = Column(alignment=MainAxisAlignment.CENTER,horizontal_alignment=CrossAxisAlignment.CENTER,scroll='always')
+        self.grid = GridView(expand=1, runs_count=4, spacing=15, run_spacing=10)
+
+        #conf
         self.configurar_file_picker_exportacion()
+
     def build(self):
         return NavigationRail(
             selected_index=0,
@@ -51,10 +62,7 @@ class Nav_Bar(Column):
         self.selected_index = e.control.selected_index  # Actualiza el índice seleccionado
         if self.selected_index == 0:
             self.busqueda.value = ""
-            if self.contedor_tabla.controls:
-                self.contedor_tabla.controls.clear()
-            
-          
+            self.limpiar_contenedores()
        
             botones = [
                 self._crear_boton(text="Dia",on_click=self.cards_servicio,data="Día",width=170,color="white"),
@@ -67,10 +75,9 @@ class Nav_Bar(Column):
             
         elif self.selected_index == 1:
             #boton para registrar guardado listado y buscar estos botones son de ejcucion de las funciones este a sido de ejemplo pero debo reescribir este codigo y hacerlo mas puro
-            self.contedor_tabla.controls.clear()
+            self.busqueda.value = ""
+            self.limpiar_contenedores()
 
-            if self.grid.controls:
-                self.grid.controls.clear()
             botones = [
                 self._crear_boton(text="Registrar Paciente", on_click= lambda e:dlg_callback(self,e,self.page,title="Registrar Pacientes",content=self.form_pacientes.build(),icon=icons.SAVE,color_icon="white",action_def=self.ejecucion,win_height=650,disabled_btn=True),width=190,icon=icons.CHECK_CIRCLE_OUTLINE),
 
@@ -89,7 +96,7 @@ class Nav_Bar(Column):
                         height=200,
                     )])
         elif self.selected_index == 2:
-            self.contedor_tabla.controls.clear()
+            self.limpiar_contenedores()
 
             botones = [
                 self._crear_boton(text="mostrar graficos",width=190,on_click = self.cargar_datos_Analizados),
@@ -102,12 +109,19 @@ class Nav_Bar(Column):
             
             self.page.go("/")
 
-
     def cambiar_estado(self,e):
         if self.page.dlg.boton_aceptar.disabled:
             self.page.dlg.boton_aceptar.disabled = False
             self.page.dlg.boton_aceptar.update()
             self.page.update()
+
+    def set_vista(self, botones: list, contenido: list):
+        self.window_selected([container_accion(botones=botones)] + contenido)
+
+    def limpiar_contenedores(self):
+        self.contedor_tabla.controls.clear()
+        self.grid.controls.clear()
+
     def _crear_boton(self, text, icon=None, data=None, on_click=None,bgcolor=None,width=None,color=None):
         return Boton_P(
             text=text,
@@ -125,22 +139,52 @@ class Nav_Bar(Column):
         )
     # esta funcion se puede poner fuera pero la dejare aqui mientras
     async def cargar_datos_Analizados(self,e):
-        async def wrapper():
-            pruebas = await self.agent_paciente.all_pacientes()
-            return pruebas
+        
+        async def wrapper(e):
+            overlay_progress(self, "cargando los graficos")
+            e.control.disabled = True
+            self.page.update()
+            try:
+                pruebas = await self.agent_paciente.all_pacientes()
+                return pruebas
+            except Exception as e:
+                return {'error':str(e)}
+            finally:
+                self.page.overlay.remove(self.loading_overlay)
+                e.control.disabled = False
+                self.page.update()
+                
         cabecera = ["Id","fecha","Nombre","Edad","Sexo","Servicio Remitente","Prueba","Resultado","Turno"]
-        pruebas = await wrapper()
+        pruebas = await wrapper(e)
+        overlay_progress(self, "Construyendo gráficos")
+        try:
+            df = analizar_datos_describe(data=pruebas,columnas=cabecera)
+            pacientes_x_fecha = df["fecha"].value_counts()
+            pacientes_servicio = df["Servicio Remitente"].value_counts()
+            pacientes_pruebas = df["Prueba"].value_counts()
+            barra_data = bar_chart(pacientes_x_fecha,"Pacientes asistidos en la fecha")
+            pie_data = pie_chart(pacientes_servicio)
+            df_conteo = pacientes_pruebas.reset_index()
+            df_conteo.columns = ['Prueba', 'count']
+            conteo = {}
 
-        df = analizar_datos_describe(data=pruebas,columnas=cabecera)
-        pacientes_x_fecha = df["fecha"].value_counts()
-        pacientes_servicio = df["Servicio Remitente"].value_counts()
-        barra_data = bar_chart(pacientes_x_fecha,"Pacientes asistidos en la fecha")
-        pie_data = pie_chart(pacientes_servicio)
-        self.contedor_tabla.controls.clear()
+            for index, row in df_conteo.iterrows():
+                pruebas = [p.strip() for p in row["Prueba"].split(",")]
+                for prueba in pruebas:
+                    conteo[prueba] = conteo.get(prueba, 0) + row["count"]
 
-        self.contedor_tabla.controls.extend([barra_data,Container(width=200,height=80),Text("Sevicio Remitente Grafico de torta",size=22,color=Colors.YELLOW_200),Container(width=200,height=80),pie_data,Container(width=200,height=80)])
-        self.page.update()
-    
+            # Aquí se lo pasas como dict, que es lo que pie_chart espera
+            pie_prueba = pie_chart(conteo, tipo="prueba")
+            self.contedor_tabla.controls.clear()
+
+            self.contedor_tabla.controls.extend([barra_data,Container(width=200,height=80),Text("Sevicio Remitente Grafico de torta",size=22,color=Colors.YELLOW_200),Container(width=200,height=80),pie_data,Container(width=200,height=120),Text("Pruebas mas frecuentes",size=22,color=Colors.YELLOW_200),Container(width=200,height=80),pie_prueba,Container(width=200,height=80)])
+            self.page.update()
+        except Exception as e:
+            print("Error creando gráficos:", e)
+        finally:
+            self.page.overlay.remove(self.loading_overlay)
+            self.page.update()
+        
     async def cards_servicio(self,e):
         tarjetas = []
         turno = e.control.data #"Día"
@@ -181,7 +225,6 @@ class Nav_Bar(Column):
     
     async def creacion_pruebas(self,e):
         resultado = await self.form_pruebas.guardar_datos()
-        print(resultado)
         if resultado and not 'error' in resultado:
             self.form_pruebas.text_hide.value = "Se ha agregado de manera correcta la prueba"
             self.form_pruebas.text_hide.color = "green"
@@ -219,12 +262,10 @@ class Nav_Bar(Column):
     async def buscar_paciente(self,e):
         resultado = await self.ejecucion_listar(e,filtrado=self.busqueda.value)
     
-    
     def btn_siguiente(self,e,filtado,page):
         async def wrapper(e):
             await self.ejecucion_listar(e,filtado,page)
         return wrapper
-    
 
     def window_selected(self,accion:list):
         self.main.controls.clear()
@@ -232,6 +273,9 @@ class Nav_Bar(Column):
         self.main.update()
     
     async def ejecucion_listar(self, e, filtrado:str="todos", page:int=1, page_size:int=10):
+        overlay_progress(self,"listando los datos")
+        e.control.disabled = True
+        self.page.update()
         try:
             cabecera = head  
             data = None
@@ -282,6 +326,10 @@ class Nav_Bar(Column):
             self.contedor_tabla.controls.append(Text("Ocurrió un error al listar los datos", color="red"))
             self.main.update()
             return {"error": str(e)}
+        finally:
+            self.page.overlay.remove(self.loading_overlay)
+            e.control.disabled = False
+            self.page.update()
     
     def configurar_file_picker_exportacion(self):
     # Crear el FilePicker una sola vez
@@ -343,7 +391,7 @@ class Nav_Bar(Column):
                 e.control.disabled = False
                 self.page.update()
         await wrapper()
-        
+
     def guardar_excel(self, e: FilePickerResultEvent):
         try:
             if e.path and hasattr(self, "df_exportacion"):

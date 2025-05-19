@@ -2,6 +2,7 @@ import pandas as pd
 from flet import BarChart,BarChartGroup,BarChartRod, Column,Text,Colors,border,ChartAxis,ChartAxisLabel,MainAxisAlignment,LineChartData,CrossAxisAlignment,LineChartDataPoint,LineChart,Border,BorderSide,FontWeight,Container,TextStyle,BoxShadow,PieChart,PieChartEvent,PieChartSection
 from config.variables import colors_for_charts
 import numpy as np
+from pprint import pprint
 
 def bar_chart(data:dict,Name):
     
@@ -109,7 +110,7 @@ def lines_chart(data: dict):
 
     return chart
 
-def pie_chart(data:dict):
+def pie_chart(data:dict,tipo=None):
     def on_chart_event(e: PieChartEvent):
         for idx, section in enumerate(chart.sections):
             if idx == e.section_index:
@@ -119,7 +120,11 @@ def pie_chart(data:dict):
                 section.radius = normal_radius
                 section.title_style = normal_title_style
         chart.update()
-    total =  np.sum(data)
+    if tipo:
+        total = sum(data.values())
+    else:
+        total =  np.sum(data)
+
     normal_radius = 50
     hover_radius = 60
     normal_title_style = TextStyle(

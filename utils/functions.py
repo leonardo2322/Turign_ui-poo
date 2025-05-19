@@ -1,5 +1,5 @@
 from utils.dialog import Dialog
-from flet import ElevatedButton,DataTable,border,BorderSide,DataColumn,colors,Text,Row,DataCell,IconButton,icons,DataRow,Column,Margin,Card,Container,BoxShadow,FontWeight,LinearGradient,alignment,Offset,TextAlign,TextField,MainAxisAlignment,CrossAxisAlignment
+from flet import ElevatedButton,DataTable,border,BorderSide,DataColumn,colors,Text,Row,DataCell,IconButton,icons,DataRow,Column,Margin,Card,Container,BoxShadow,FontWeight,LinearGradient,alignment,Offset,TextAlign,TextField,MainAxisAlignment,CrossAxisAlignment,ProgressRing
 # funcion para llamar al dialog y se abre
 from services.pacientes_servicio import Paciente_agente_servicio
 from pprint import pprint
@@ -242,6 +242,23 @@ class DataTableManager(Column):
             
         return on_delete_click
 
+
+def overlay_progress(self,message):
+    self.loading_overlay = Container(
+                    content=Column(
+                        controls=[
+                            ProgressRing(),
+                            Text(f"{message}... Por favor espera", size=14)
+                        ],
+                        alignment="center",
+                        horizontal_alignment="center"
+                    ),
+                    alignment=alignment.center,
+                    expand=True,
+                    bgcolor="#00000030"  # fondo semitransparente opcional
+                )
+    self.page.overlay.append(self.loading_overlay)
+    self.page.update()
 
 
     
