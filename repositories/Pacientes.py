@@ -53,6 +53,15 @@ class Paciente_agente_repo:
 
     async def all_pacients(self):
         return await Paciente.all()
+    
+    async def all_pacients_pruebas(self):
+        pacientes = await Paciente.all().prefetch_related("pruebas")
+        pruebas_dict = {}
+
+        for paciente in pacientes:
+            pruebas = await paciente.pruebas.all()
+            pruebas_dict[str(paciente.id)] = [prueba.nombre for prueba in pruebas]
+        return pacientes, pruebas_dict
 
     async def get_pacientes_serivicio(self, servicio, fecha=None):
         try:
@@ -137,7 +146,7 @@ class Paciente_agente_repo:
             return {"error": f"Error al eliminar paciente: {str(e)}"}
     
     async def delete_all_pacientes(self):
-        pass
+        return await Paciente.all().delete()
 
     async def delete_prueba(self, id):
         try:

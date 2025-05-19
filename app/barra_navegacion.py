@@ -50,7 +50,7 @@ class Nav_Bar(Column):
                 NavigationRailDestination(
                     icon=item.get("icon",icons.HELP_OUTLINE),
                     selected_icon= item.get("selected_icon",icons.HELP),
-                    label=item.get("label","--"),
+                    label=item.get("label","--").center(10),
                 ) for item in self.destinations
             ],
             height=780,  # Ajusta la altura según tus necesidades
@@ -99,8 +99,10 @@ class Nav_Bar(Column):
             self.limpiar_contenedores()
 
             botones = [
-                self._crear_boton(text="mostrar graficos",width=190,on_click = self.cargar_datos_Analizados),
-                self._crear_boton(text="Exportar data excel", width=190,icon=icons.SAVE, on_click=self.exportar_excel)
+                self._crear_boton(text="mostrar graficos",width=190,icon=icons.ANALYTICS_OUTLINED,on_click=self.cargar_datos_Analizados),
+                self._crear_boton(text="Exportar data excel", width=190,icon=icons.SAVE, on_click=self.exportar_excel),
+                self._crear_boton(text="Borrar todos los datos", width=210,icon=icons.DELETE, on_click=self.borrar_todo),
+
             ]
             self.window_selected([container_accion(botones=botones),self.contedor_tabla])
         
@@ -145,7 +147,7 @@ class Nav_Bar(Column):
             e.control.disabled = True
             self.page.update()
             try:
-                pruebas = await self.agent_paciente.all_pacientes()
+                pruebas = await self.agent_paciente.all_pacientes_pruebas()
                 return pruebas
             except Exception as e:
                 return {'error':str(e)}
@@ -156,6 +158,11 @@ class Nav_Bar(Column):
                 
         cabecera = ["Id","fecha","Nombre","Edad","Sexo","Servicio Remitente","Prueba","Resultado","Turno"]
         pruebas = await wrapper(e)
+        if not pruebas:
+            self.contedor_tabla.controls.clear()
+            self.contedor_tabla.controls.append(Text("NO hay informacion para procesar",size=24,color="yellow"))
+            self.page.update()
+            return
         overlay_progress(self, "Construyendo gráficos")
         try:
             df = analizar_datos_describe(data=pruebas,columnas=cabecera)
@@ -177,7 +184,7 @@ class Nav_Bar(Column):
             pie_prueba = pie_chart(conteo, tipo="prueba")
             self.contedor_tabla.controls.clear()
 
-            self.contedor_tabla.controls.extend([barra_data,Container(width=200,height=80),Text("Sevicio Remitente Grafico de torta",size=22,color=Colors.YELLOW_200),Container(width=200,height=80),pie_data,Container(width=200,height=120),Text("Pruebas mas frecuentes",size=22,color=Colors.YELLOW_200),Container(width=200,height=80),pie_prueba,Container(width=200,height=80)])
+            self.contedor_tabla.controls.extend([barra_data,Container(width=200,height=80),Text("Sevicio Remitente Grafico de torta los mas frecuentes",size=22,color=Colors.YELLOW_200),Container(width=200,height=80),pie_data,Container(width=200,height=120),Text("Pruebas mas frecuentes",size=22,color=Colors.YELLOW_200),Container(width=200,height=80),pie_prueba,Container(width=200,height=80)])
             self.page.update()
         except Exception as e:
             print("Error creando gráficos:", e)
@@ -189,12 +196,11 @@ class Nav_Bar(Column):
         tarjetas = []
         turno = e.control.data #"Día"
         fecha_filtro = self.busqueda.value.strip()
-        self.turno_name.value = f"Turno: {turno} Fecha: {fecha_filtro if fecha_filtro else 'Todos'}"
+        self.turno_name.value = f"Turno: {turno} Fecha: {fecha_filtro if fecha_filtro else 'Todas'}"
 
         async def wrapper():
         # Pasar la fecha si existe
             pruebas_count = await self.agent_paciente.pacientes_servicio(fecha=fecha_filtro or None)
-            # print(pruebas_count)
             result_dia = {
                 prueba: {
                     "servicios": [s for s in detalles["servicios"] if s["turno"] == turno],
@@ -360,7 +366,8 @@ class Nav_Bar(Column):
                 # Obtener todos los datos
                 pacientes = await self.agent_paciente.all_for_export()
                 if not pacientes:
-                    self.page.snack_bar = SnackBar(Text("No hay datos para exportar"), open=True)
+                    self.contedor_tabla.controls.clear()
+                    self.contedor_tabla.controls.append(Text("NO hay informacion para exportar",size=24,color="yellow"))
                     return
 
                 # Convertir a DataFrame desde __dict__, ignorando atributos internos directamente
@@ -387,6 +394,30 @@ class Nav_Bar(Column):
                 self.page.update()
             finally:
         # Ocultar spinner y habilitar botón
+                self.page.overlay.remove(self.loading_overlay)
+                e.control.disabled = False
+                self.page.update()
+        await wrapper()
+
+    async def borrar_todo(self,e):
+        dlg_callback(self,e=e,page=self.page,content=Text("estas seguro de querer borar toda la informacion de tus pacientes ya has hecho la debida migracion a EXCEL",color="white",size=18),action_def=self.borrar_datos,icon=icons.DANGEROUS,color_icon="red",win_height=200,title="Cuidado estas por borrar todos los datos")
+    # borrar todos los datos
+    async def borrar_datos(self,e):
+        async def wrapper():
+            overlay_progress(self, "Borrando datos")
+            e.control.disabled = True
+            self.page.update()
+            try:
+                result = await self.agent_paciente.delete_all_pacientes()
+                if 'success' in result and result.get("deleted", 0) > 0:
+                    dlg_callback(self,e,self.page,title="Datos borrados",content=Text("Los datos han sido borrados exitosamente "),icon=icons.CHECK_CIRCLE,color_icon="green",win_height=200)
+                else:
+                    dlg_callback(self,e,self.page,title="Error de borrado",content=Text("Ocurrió un error al borrar los datos no hay datos que borrar o estas presionando mucho el boton"),icon=icons.DANGEROUS,color_icon="red",win_height=200)
+                    self.page.update()
+            except Exception as ex:
+                print("Error borrando datos:", ex)
+                self.page.update()
+            finally:
                 self.page.overlay.remove(self.loading_overlay)
                 e.control.disabled = False
                 self.page.update()

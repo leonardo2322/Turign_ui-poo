@@ -165,8 +165,14 @@ class Paciente_agente_servicio:
         data = self.order_pacientes_pruebas(results)
         return data
     
+    async def all_pacientes_pruebas(self):
+        all_pacients_pruebas = await self.paciente_agente_repo.all_pacients_pruebas()
+        data = self.order_pacientes_pruebas(all_pacients_pruebas)
+        return data
+    
     async def all_for_export(self):
         return await self.paciente_agente_repo.all_pacients()
+    
     async def pacientes_servicio(self, servicio=None, fecha=None):
     # 👇 Usamos parse_fecha que devuelve un Q object para la búsqueda por día
         fecha_format = parse_fecha(fecha) if fecha else None
@@ -212,6 +218,12 @@ class Paciente_agente_servicio:
             conteo_dict[prueba]["total_general"] += int(total)
         return conteo_dict
     
+    async def delete_all_pacientes(self):
+        try:
+            count = await self.paciente_agente_repo.delete_all_pacientes()
+            return {"success": "Pacientes eliminados correctamente.","deleted": count}
+        except Exception as e:
+            return {"error": str(e)}
     async def delete_prueba(self, id):
         try:
             resultado = await self.paciente_agente_repo.delete_prueba(id=id)
